@@ -8,6 +8,8 @@ import { evaluateMathAnswer, calculateSoftScore } from '../utils/evaluation';
 import { computeNextLevel, type Streak } from '../utils/adaptive';
 import QuestionRenderer from '../components/QuestionRenderer';
 import Timer from '../components/Timer';
+import OverallProgressBar from '../components/OverallProgressBar';
+import ModuleTimeUpBanner from '../components/ModuleTimeUpBanner';
 import { MiniGameIntermission } from '../components/minigames/MiniGameIntermission';
 import { Flame, Award, Pause, Play } from 'lucide-react';
 
@@ -32,7 +34,9 @@ const ModuleMath: React.FC = () => {
   const [showIntermission, setShowIntermission] = useState<boolean>(false);
 
   const moduleStartTime = useRef<number>(Date.now());
-  const [moduleTimeUp, setModuleTimeUp] = useState(false);
+  const [elapsedModuleTimeMs, setElapsedModuleTimeMs] = useState<number>(0);
+  const [moduleTimeUp, setModuleTimeUp] = useState<boolean>(false);
+  const [isFinishingCurrent, setIsFinishingCurrent] = useState<boolean>(false);
 
   const maxDurationMins = state.customTestConfig?.maxDurationMinutes;
   const timeLimitMs = useMemo(() => {
@@ -44,7 +48,9 @@ const ModuleMath: React.FC = () => {
   useEffect(() => {
     if (!isFinite(timeLimitMs) || state.isPaused) return;
     const interval = setInterval(() => {
-      if (Date.now() - moduleStartTime.current >= timeLimitMs) {
+      const elapsed = Date.now() - moduleStartTime.current;
+      setElapsedModuleTimeMs(elapsed);
+      if (elapsed >= timeLimitMs) {
         setModuleTimeUp(true);
       }
     }, 1000);
@@ -60,7 +66,6 @@ const ModuleMath: React.FC = () => {
   }, [state.isPaused]);
 
   const nextQuestion = useMemo(() => {
-    if (moduleTimeUp) return null;
     const config = state.customTestConfig;
     const topicModes = config?.topicModes || {};
     const forcedTopics = Object.entries(topicModes)
@@ -99,7 +104,7 @@ const ModuleMath: React.FC = () => {
       q = generateMathQuestion(currentLevel, askedIds);
     }
     return q;
-  }, [currentLevel, askedIds, moduleTimeUp, state.customTestConfig]);
+  }, [currentLevel, askedIds, state.customTestConfig]);
 
   const { elapsedTime, targetTime, isExceeded, resetTimer, stopTimer } = useQuestionTimer(
     nextQuestion?.timeLimit || 45,
@@ -160,9 +165,17 @@ const ModuleMath: React.FC = () => {
     setStreak(newStreak);
     updateMathLevel(newLevel);
 
-    if (moduleTimeUp || !nextQuestion) {
+    if (moduleTimeUp || isFinishingCurrent || !nextQuestion) {
       setShowIntermission(true);
     }
+  };
+
+  const handleFinishNow = () => {
+    setShowIntermission(true);
+  };
+
+  const handleFinishCurrentQuestion = () => {
+    setIsFinishingCurrent(true);
   };
 
   const handleStepBack = () => {
@@ -198,7 +211,7 @@ const ModuleMath: React.FC = () => {
     );
   }
 
-  if (moduleTimeUp) {
+  if (moduleTimeUp && !currentQuestion) {
     return (
       <div className="card fade-in" style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
         <h2 style={{ color: 'var(--primary)' }}>Mathe-Modul Abgeschlossen!</h2>
@@ -231,7 +244,13 @@ const ModuleMath: React.FC = () => {
   }
 
   return (
-    <div className="card fade-in" style={{ maxWidth: '800px', margin: '0 auto', position: 'relative' }}>
+    <div className="card fade-in" style={{ maxWidth: '800px', margin: '0 auto', position: 'relative', overflow: 'hidden' }}>
+      <OverallProgressBar
+        elapsedMs={elapsedModuleTimeMs}
+        totalMs={timeLimitMs}
+        isExceeded={moduleTimeUp}
+      />
+
       {/* PAUSE OVERLAY MODAL */}
       {state.isPaused && (
         <div
@@ -345,6 +364,15 @@ const ModuleMath: React.FC = () => {
           Frage {questionsAsked + 1} • Schwierigkeit: Level {currentLevel}
         </div>
       </div>
+
+      {/* MODULE TIME UP BANNER (IF TIME RUNS OUT DURING ACTIVE QUESTION) */}
+      {moduleTimeUp && currentQuestion && (
+        <ModuleTimeUpBanner
+          onFinishNow={handleFinishNow}
+          onFinishCurrentQuestion={handleFinishCurrentQuestion}
+          isFinishingCurrent={isFinishingCurrent}
+        />
+      )}
 
       <QuestionRenderer
         question={currentQuestion}

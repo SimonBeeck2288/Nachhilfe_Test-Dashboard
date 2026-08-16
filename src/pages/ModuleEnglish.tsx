@@ -8,6 +8,8 @@ import { evaluateEnglishAnswer, calculateSoftScore } from '../utils/evaluation';
 import { computeNextLevel, type Streak } from '../utils/adaptive';
 import QuestionRenderer from '../components/QuestionRenderer';
 import Timer from '../components/Timer';
+import OverallProgressBar from '../components/OverallProgressBar';
+import ModuleTimeUpBanner from '../components/ModuleTimeUpBanner';
 import { Flame, Award, Pause, Play } from 'lucide-react';
 
 const ModuleEnglish: React.FC = () => {
@@ -29,7 +31,9 @@ const ModuleEnglish: React.FC = () => {
   }[]>([]);
 
   const moduleStartTime = useRef<number>(Date.now());
-  const [moduleTimeUp, setModuleTimeUp] = useState(false);
+  const [elapsedModuleTimeMs, setElapsedModuleTimeMs] = useState<number>(0);
+  const [moduleTimeUp, setModuleTimeUp] = useState<boolean>(false);
+  const [isFinishingCurrent, setIsFinishingCurrent] = useState<boolean>(false);
 
   const maxDurationMins = state.customTestConfig?.maxDurationMinutes;
   const timeLimitMs = useMemo(() => {
@@ -41,7 +45,9 @@ const ModuleEnglish: React.FC = () => {
   useEffect(() => {
     if (!isFinite(timeLimitMs) || state.isPaused) return;
     const interval = setInterval(() => {
-      if (Date.now() - moduleStartTime.current >= timeLimitMs) {
+      const elapsed = Date.now() - moduleStartTime.current;
+      setElapsedModuleTimeMs(elapsed);
+      if (elapsed >= timeLimitMs) {
         setModuleTimeUp(true);
       }
     }, 1000);
@@ -57,8 +63,6 @@ const ModuleEnglish: React.FC = () => {
   }, [state.isPaused]);
 
   const nextQuestion = useMemo(() => {
-    if (moduleTimeUp) return null;
-
     const config = state.customTestConfig;
     const topicModes = config?.topicModes || {};
     let pool = englishQuestions;
@@ -84,8 +88,6 @@ const ModuleEnglish: React.FC = () => {
       available = pool.filter((q) => q.level === currentLevel);
     }
 
-    // Pool Exhaustion Fallback: If all available questions in pool have been asked,
-    // reset tracking for this pool so questions loop with random shuffle (spaced repetition)
     if (available.length === 0 && pool.length > 0) {
       available = pool;
     }
@@ -94,7 +96,7 @@ const ModuleEnglish: React.FC = () => {
 
     const randomIndex = Math.floor(Math.random() * available.length);
     return available[randomIndex];
-  }, [currentLevel, askedIds, moduleTimeUp, state.customTestConfig]);
+  }, [currentLevel, askedIds, state.customTestConfig]);
 
   const { elapsedTime, targetTime, isExceeded, resetTimer, stopTimer } = useQuestionTimer(
     nextQuestion?.timeLimit || 45,
@@ -155,9 +157,17 @@ const ModuleEnglish: React.FC = () => {
     setStreak(newStreak);
     updateEnglishLevel(newLevel);
 
-    if (moduleTimeUp || !nextQuestion) {
+    if (moduleTimeUp || isFinishingCurrent || !nextQuestion) {
       navigate('/dashboard');
     }
+  };
+
+  const handleFinishNow = () => {
+    navigate('/dashboard');
+  };
+
+  const handleFinishCurrentQuestion = () => {
+    setIsFinishingCurrent(true);
   };
 
   const handleStepBack = () => {
@@ -180,7 +190,7 @@ const ModuleEnglish: React.FC = () => {
     updateEnglishLevel(lastItem.level);
   };
 
-  if (moduleTimeUp) {
+  if (moduleTimeUp && !currentQuestion) {
     return (
       <div className="card fade-in" style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
         <h2 style={{ color: 'var(--primary)' }}>Alle Test-Module Abgeschlossen!</h2>
@@ -213,7 +223,13 @@ const ModuleEnglish: React.FC = () => {
   }
 
   return (
-    <div className="card fade-in" style={{ maxWidth: '800px', margin: '0 auto', position: 'relative' }}>
+    <div className="card fade-in" style={{ maxWidth: '800px', margin: '0 auto', position: 'relative', overflow: 'hidden' }}>
+      <OverallProgressBar
+        elapsedMs={elapsedModuleTimeMs}
+        totalMs={timeLimitMs}
+        isExceeded={moduleTimeUp}
+      />
+
       {/* PAUSE OVERLAY MODAL */}
       {state.isPaused && (
         <div
@@ -326,6 +342,15 @@ const ModuleEnglish: React.FC = () => {
           Frage {questionsAsked + 1} • Schwierigkeit: Level {currentLevel}
         </div>
       </div>
+
+      {/* MODULE TIME UP BANNER (IF TIME RUNS OUT DURING ACTIVE QUESTION) */}
+      {moduleTimeUp && currentQuestion && (
+        <ModuleTimeUpBanner
+          onFinishNow={handleFinishNow}
+          onFinishCurrentQuestion={handleFinishCurrentQuestion}
+          isFinishingCurrent={isFinishingCurrent}
+        />
+      )}
 
       <QuestionRenderer
         question={currentQuestion}

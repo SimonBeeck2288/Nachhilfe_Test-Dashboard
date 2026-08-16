@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import type { PracticeSheet, PracticeGeneratorConfig, GeneratedExerciseItem } from '../types/practice';
 import { generatePracticeSheet } from '../utils/practiceGenerator';
 import {
@@ -15,6 +15,8 @@ import { AiPromptModal } from './AiPromptModal';
 import type { AiPromptContext, PromptMode } from '../utils/aiPromptGenerator';
 import { getStudentRoster } from '../utils/studentRoster';
 import { useTestSession } from '../context/TestSessionContext';
+import { focusAndPlaceCursorAtEnd } from '../utils/focusHelper';
+
 
 export interface PracticeSessionResults {
   totalQuestions: number;
@@ -117,6 +119,7 @@ export const PracticeSessionView: React.FC<PracticeSessionViewProps> = ({
   // Session state
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState<string>('');
+  const inputRef = useRef<HTMLInputElement>(null);
   const [customInput, setCustomInput] = useState<string>('');
   const [isAnswerSubmitted, setIsAnswerSubmitted] = useState(false);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
@@ -177,6 +180,14 @@ export const PracticeSessionView: React.FC<PracticeSessionViewProps> = ({
   }, [isCompleted]);
 
   const currentExercise = exercises[currentIndex] || exercises[0];
+
+  // Auto-focus input field on new question or when answer reset
+  useEffect(() => {
+    if (!isCompleted && !isAnswerSubmitted && (!currentExercise.options || currentExercise.options.length === 0)) {
+      focusAndPlaceCursorAtEnd(inputRef.current);
+    }
+  }, [currentIndex, isAnswerSubmitted, currentExercise.options, isCompleted]);
+
 
   // Answer Submission Handler
   const handleSubmitAnswer = () => {
@@ -726,6 +737,7 @@ export const PracticeSessionView: React.FC<PracticeSessionViewProps> = ({
                 Deine Lösung:
               </label>
               <input
+                ref={inputRef}
                 id="exercise-custom-input"
                 type="text"
                 disabled={isAnswerSubmitted}

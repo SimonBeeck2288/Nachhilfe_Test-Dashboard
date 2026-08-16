@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import type { Question } from '../data/questions';
 import { Send, FastForward, BookOpen, Volume2, VolumeX, Sparkles, Compass, Bookmark, ArrowLeft } from 'lucide-react';
 import GeometryDiagram from './GeometryDiagram';
@@ -9,6 +9,7 @@ import FractionPieQuestion from './FractionPieQuestion';
 import { speakText, stopSpeech, isTTSSupported } from '../utils/tts';
 import { shuffleArray } from '../utils/shuffle';
 import { useTestSession } from '../context/TestSessionContext';
+import { focusAndPlaceCursorAtEnd } from '../utils/focusHelper';
 
 interface QuestionRendererProps {
   question: Question;
@@ -30,6 +31,7 @@ export const QuestionRenderer: React.FC<QuestionRendererProps> = ({
   initialAnswer,
 }) => {
   const { state, toggleBookmarkQuestion } = useTestSession();
+  const inputRef = useRef<HTMLInputElement>(null);
   const [inputValue, setInputValue] = useState(initialAnswer || '');
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
 
@@ -54,10 +56,14 @@ export const QuestionRenderer: React.FC<QuestionRendererProps> = ({
     setInputValue(initialAnswer || '');
     stopSpeech();
     setIsPlayingAudio(false);
+    if (question.type === 'input') {
+      focusAndPlaceCursorAtEnd(inputRef.current);
+    }
     return () => {
       stopSpeech();
     };
-  }, [question.id, initialAnswer, isDirectMode]);
+  }, [question.id, initialAnswer, isDirectMode, question.type]);
+
 
   const toggleTTS = () => {
     if (!isTTSSupported()) {
@@ -375,13 +381,13 @@ export const QuestionRenderer: React.FC<QuestionRendererProps> = ({
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', alignItems: 'center' }}>
           <form onSubmit={handleSubmit} style={{ display: 'flex', gap: '1rem', justifyContent: 'center', width: '100%' }}>
             <input
+              ref={inputRef}
               type="text"
               className="input"
               style={{ maxWidth: '320px', fontSize: '1.05rem' }}
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               placeholder="Deine Antwort..."
-              autoFocus
             />
             <button type="submit" className="btn btn-primary" disabled={!inputValue.trim()}>
               <Send size={20} />

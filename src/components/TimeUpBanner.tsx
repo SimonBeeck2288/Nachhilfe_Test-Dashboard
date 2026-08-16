@@ -1,15 +1,32 @@
 import React from 'react';
 import { Clock } from 'lucide-react';
+import { ModuleTimeUpBanner } from './ModuleTimeUpBanner';
 
-interface TimeUpBannerProps {
+export { ModuleTimeUpBanner };
+
+export interface TimeUpBannerProps {
   message?: string;
   onExtraTime?: () => void;
   onSkip?: () => void;
+  onFinishNow?: () => void;
+  onFinishCurrentQuestion?: () => void;
 }
 
 export const TimeUpBanner: React.FC<TimeUpBannerProps> = ({
-  message = 'Richtzeit überschritten – Du kannst weiterknobeln oder zur nächsten Aufgabe wechseln'
+  message = 'Richtzeit überschritten – Du kannst weiterknobeln oder zur nächsten Aufgabe wechseln',
+  onFinishNow,
+  onFinishCurrentQuestion,
 }) => {
+  if (onFinishNow) {
+    return (
+      <ModuleTimeUpBanner
+        message={message}
+        onFinishNow={onFinishNow}
+        onFinishCurrentQuestion={onFinishCurrentQuestion}
+      />
+    );
+  }
+
   return (
     <div
       className="soft-recommendation-pill fade-in"
@@ -26,7 +43,7 @@ export const TimeUpBanner: React.FC<TimeUpBannerProps> = ({
         color: '#92400E',
         fontSize: '0.88rem',
         fontWeight: 500,
-        boxShadow: '0 2px 6px rgba(217, 119, 6, 0.08)'
+        boxShadow: '0 2px 6px rgba(217, 119, 6, 0.08)',
       }}
     >
       <Clock size={16} color="#D97706" style={{ flexShrink: 0 }} />
@@ -36,4 +53,3 @@ export const TimeUpBanner: React.FC<TimeUpBannerProps> = ({
 };
 
 export default TimeUpBanner;
-
