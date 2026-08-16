@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import type { PracticeSheet, PracticeGeneratorConfig } from '../types/practice';
 import { generatePracticeSheet } from '../utils/practiceGenerator';
 import { Printer, ArrowLeft, CheckCircle2, BookOpen } from 'lucide-react';
+import { useTestSession } from '../context/TestSessionContext';
 
 export interface PrintableWorksheetProps {
   sheet?: PracticeSheet;
@@ -17,6 +18,16 @@ export const PrintableWorksheet: React.FC<PrintableWorksheetProps> = ({
   onBackToConfig,
 }) => {
   const [activeMode, setActiveMode] = useState<'student' | 'teacher'>(initialMode);
+
+  let sessionState = null;
+  try {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const session = useTestSession();
+    sessionState = session?.state;
+  } catch {
+    // outside provider
+  }
+  const isDirectMode = Boolean(sessionState?.accessibilitySettings?.directQuestions);
 
   // Generate active sheet if not directly provided
   const activeSheet = React.useMemo(() => {
@@ -327,16 +338,25 @@ export const PrintableWorksheet: React.FC<PrintableWorksheetProps> = ({
               </div>
 
               {/* Story context if present */}
-              {ex.storyContext && (
-                <div style={{ fontSize: '0.88rem', color: '#475569', fontStyle: 'italic', paddingLeft: '0.5rem', borderLeft: '3px solid #CBD5E1' }}>
-                  {ex.storyContext}
-                </div>
-              )}
+              {(() => {
+                const effectiveStory = isDirectMode ? ex.directStoryContext : (ex.storyContext || ex.directStoryContext);
+                const activeText = isDirectMode && ex.directText ? ex.directText : ex.questionText;
 
-              {/* Question Text */}
-              <div style={{ fontSize: '1rem', fontWeight: 600, color: '#1E293B', lineHeight: 1.4 }}>
-                {ex.questionText}
-              </div>
+                return (
+                  <>
+                    {effectiveStory && (
+                      <div style={{ fontSize: '0.88rem', color: '#475569', fontStyle: 'italic', paddingLeft: '0.5rem', borderLeft: '3px solid #CBD5E1' }}>
+                        {effectiveStory}
+                      </div>
+                    )}
+
+                    {/* Question Text */}
+                    <div style={{ fontSize: '1rem', fontWeight: 600, color: '#1E293B', lineHeight: 1.4 }}>
+                      {activeText}
+                    </div>
+                  </>
+                );
+              })()}
 
               {/* Student View Options & Answer Line */}
               {activeMode === 'student' && (

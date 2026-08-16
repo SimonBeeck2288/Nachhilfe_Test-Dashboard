@@ -1,6 +1,7 @@
 /* oxlint-disable react/only-export-components */
 import { createContext, useContext, useState, type ReactNode, useEffect } from 'react';
-import type { StudentProfile } from '../types/student';
+import type { StudentProfile, AccessibilitySettings, AccessibilityPreset } from '../types/student';
+import { DEFAULT_ACCESSIBILITY_SETTINGS, DIRECT_REDUCED_SENSORY_SETTINGS } from '../types/student';
 import type { TestSessionRecord, TopicBreakdownItem, CognitionStatsRecord } from '../types/history';
 import type { CustomTestConfig } from '../types/config';
 import type { AvatarConfig } from '../types/gamification';
@@ -49,6 +50,7 @@ export interface TestSessionState {
   pausePoolSeconds: number;
   isPaused: boolean;
   markedQuestionIds: string[];
+  accessibilitySettings: AccessibilitySettings;
 }
 
 export interface TestSessionContextType {
@@ -78,6 +80,10 @@ export interface TestSessionContextType {
   resetPausePool: () => void;
   toggleBookmarkQuestion: (questionId: string) => void;
   popLastAnswer: (subject: Subject) => AnswerRecord | null;
+  setAccessibilitySettings: (
+    settings: AccessibilitySettings | ((prev: AccessibilitySettings) => AccessibilitySettings)
+  ) => void;
+  setAccessibilityPreset: (preset: AccessibilityPreset) => void;
   finishTest: () => void;
   clearSession: () => void;
   saveSessionToHistory: () => TestSessionRecord | null;
@@ -104,7 +110,9 @@ const initialState: TestSessionState = {
   pausePoolSeconds: 90,
   isPaused: false,
   markedQuestionIds: [],
+  accessibilitySettings: { ...DEFAULT_ACCESSIBILITY_SETTINGS },
 };
+
 
 const TestSessionContext = createContext<TestSessionContextType | undefined>(undefined);
 
@@ -112,7 +120,17 @@ export const TestSessionProvider: React.FC<{ children: ReactNode }> = ({ childre
   const [state, setState] = useState<TestSessionState>(() => {
     try {
       const saved = localStorage.getItem('diagnosticSession');
-      return saved ? JSON.parse(saved) : initialState;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          ...initialState,
+          ...parsed,
+          accessibilitySettings: parsed.accessibilitySettings
+            ? { ...DEFAULT_ACCESSIBILITY_SETTINGS, ...parsed.accessibilitySettings }
+            : { ...DEFAULT_ACCESSIBILITY_SETTINGS },
+        };
+      }
+      return initialState;
     } catch {
       return initialState;
     }
@@ -139,32 +157,54 @@ export const TestSessionProvider: React.FC<{ children: ReactNode }> = ({ childre
     return () => clearInterval(interval);
   }, [state.isPaused]);
 
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      if (state.accessibilitySettings?.reducedSensory) {
+        document.documentElement.classList.add('reduced-sensory');
+      } else {
+        document.documentElement.classList.remove('reduced-sensory');
+      }
+    }
+  }, [state.accessibilitySettings?.reducedSensory]);
+
   const selectStudent = (student: StudentProfile | null) => {
     if (!student) {
-      setState(initialState);
+      setState((prev) => ({
+        ...initialState,
+        customTestConfig: prev.customTestConfig,
+        accessibilitySettings: prev.accessibilitySettings || { ...DEFAULT_ACCESSIBILITY_SETTINGS },
+      }));
       return;
     }
     const startingLvl = state.customTestConfig?.startingLevel || 1;
     const initialTheta = startingLvl - 4;
-    setState((prev) => ({
-      ...initialState,
-      currentStudent: student,
-      studentName: student.name,
-      studentId: student.id,
-      favoriteSubject: student.favoriteSubject || '',
-      problemSubject: student.problemSubject || '',
-      customTestConfig: prev.customTestConfig,
-      mathLevel: startingLvl,
-      englishLevel: startingLvl,
-      mathTheta: initialTheta,
-      englishTheta: initialTheta,
-      answers: [],
-      activeStreak: 0,
-      points: 0,
-      unlockedBadges: [],
-      unlockedAccessories: initialState.unlockedAccessories,
-      avatarConfig: initialState.avatarConfig,
-    }));
+
+    setState((prev) => {
+      const studentSettings = student.accessibilitySettings
+        ? { ...student.accessibilitySettings }
+        : prev.accessibilitySettings || { ...DEFAULT_ACCESSIBILITY_SETTINGS };
+
+      return {
+        ...initialState,
+        currentStudent: student,
+        studentName: student.name,
+        studentId: student.id,
+        favoriteSubject: student.favoriteSubject || '',
+        problemSubject: student.problemSubject || '',
+        customTestConfig: prev.customTestConfig,
+        mathLevel: startingLvl,
+        englishLevel: startingLvl,
+        mathTheta: initialTheta,
+        englishTheta: initialTheta,
+        answers: [],
+        activeStreak: 0,
+        points: 0,
+        unlockedBadges: [],
+        unlockedAccessories: initialState.unlockedAccessories,
+        avatarConfig: initialState.avatarConfig,
+        accessibilitySettings: studentSettings,
+      };
+    });
   };
 
   const saveCurrentStudentProfile = (updates: Partial<StudentProfile>) => {
@@ -176,12 +216,14 @@ export const TestSessionProvider: React.FC<{ children: ReactNode }> = ({ childre
           favoriteSubject: updates.favoriteSubject || '',
           problemSubject: updates.problemSubject || '',
           notes: updates.notes || '',
+          accessibilitySettings: updates.accessibilitySettings || state.accessibilitySettings,
         });
         setState((prev) => ({
           ...prev,
           currentStudent: created,
           studentName: created.name,
           studentId: created.id,
+          accessibilitySettings: created.accessibilitySettings || prev.accessibilitySettings,
         }));
       }
       return;
@@ -193,8 +235,28 @@ export const TestSessionProvider: React.FC<{ children: ReactNode }> = ({ childre
         ...prev,
         currentStudent: updated,
         studentName: updated.name,
+        accessibilitySettings: updated.accessibilitySettings || prev.accessibilitySettings,
       }));
     }
+  };
+
+  const setAccessibilitySettings = (
+    settings: AccessibilitySettings | ((prev: AccessibilitySettings) => AccessibilitySettings)
+  ) => {
+    setState((prev) => {
+      const nextSettings = typeof settings === 'function' ? settings(prev.accessibilitySettings || { ...DEFAULT_ACCESSIBILITY_SETTINGS }) : settings;
+      return {
+        ...prev,
+        accessibilitySettings: nextSettings,
+      };
+    });
+  };
+
+  const setAccessibilityPreset = (preset: 'standard' | 'direct_reduced_sensory') => {
+    const nextSettings = preset === 'direct_reduced_sensory'
+      ? { ...DIRECT_REDUCED_SENSORY_SETTINGS }
+      : { ...DEFAULT_ACCESSIBILITY_SETTINGS };
+    setAccessibilitySettings(nextSettings);
   };
 
   const setCustomTestConfig = (config: CustomTestConfig | null) => {
@@ -215,6 +277,10 @@ export const TestSessionProvider: React.FC<{ children: ReactNode }> = ({ childre
 
     if (typeof nameOrStudent === 'string') {
       const studentMatch = state.currentStudent?.name === nameOrStudent ? state.currentStudent : null;
+      const effectiveSettings = studentMatch?.accessibilitySettings
+        ? { ...studentMatch.accessibilitySettings }
+        : state.accessibilitySettings || { ...DEFAULT_ACCESSIBILITY_SETTINGS };
+
       setState({
         ...initialState,
         sessionId: newSessionId,
@@ -234,8 +300,13 @@ export const TestSessionProvider: React.FC<{ children: ReactNode }> = ({ childre
         unlockedBadges: [],
         unlockedAccessories: initialState.unlockedAccessories,
         avatarConfig: initialState.avatarConfig,
+        accessibilitySettings: effectiveSettings,
       });
     } else {
+      const effectiveSettings = nameOrStudent.accessibilitySettings
+        ? { ...nameOrStudent.accessibilitySettings }
+        : state.accessibilitySettings || { ...DEFAULT_ACCESSIBILITY_SETTINGS };
+
       setState({
         ...initialState,
         sessionId: newSessionId,
@@ -255,6 +326,7 @@ export const TestSessionProvider: React.FC<{ children: ReactNode }> = ({ childre
         unlockedBadges: [],
         unlockedAccessories: initialState.unlockedAccessories,
         avatarConfig: initialState.avatarConfig,
+        accessibilitySettings: effectiveSettings,
       });
     }
   };
@@ -530,6 +602,9 @@ export const TestSessionProvider: React.FC<{ children: ReactNode }> = ({ childre
       problemSubject: state.problemSubject,
       notes: state.currentStudent?.notes,
       markedQuestionIds: state.markedQuestionIds || [],
+      accessibilitySettings: state.accessibilitySettings
+        ? { ...state.accessibilitySettings }
+        : { ...DEFAULT_ACCESSIBILITY_SETTINGS },
     };
 
     saveSessionRecord(record);
@@ -548,7 +623,11 @@ export const TestSessionProvider: React.FC<{ children: ReactNode }> = ({ childre
   };
 
   const clearSession = () => {
-    setState(initialState);
+    setState((prev) => ({
+      ...initialState,
+      customTestConfig: prev.customTestConfig,
+      accessibilitySettings: prev.accessibilitySettings || { ...DEFAULT_ACCESSIBILITY_SETTINGS },
+    }));
     try {
       localStorage.removeItem('diagnosticSession');
     } catch (err) {
@@ -585,6 +664,8 @@ export const TestSessionProvider: React.FC<{ children: ReactNode }> = ({ childre
         resetPausePool,
         toggleBookmarkQuestion,
         popLastAnswer,
+        setAccessibilitySettings,
+        setAccessibilityPreset,
         finishTest,
         clearSession,
         saveSessionToHistory,
@@ -602,3 +683,4 @@ export const useTestSession = () => {
   }
   return context;
 };
+

@@ -1,4 +1,5 @@
 import type { AnswerRecord } from '../context/TestSessionContext';
+import type { AccessibilitySettings } from './student';
 
 export interface TopicBreakdownItem {
   topic: string;
@@ -35,4 +36,6 @@ export interface TestSessionRecord {
   interpretation?: string;
   durationSeconds?: number;
   markedQuestionIds?: string[];
+  accessibilitySettings?: AccessibilitySettings;
 }
+

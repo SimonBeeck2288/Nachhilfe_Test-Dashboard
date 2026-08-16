@@ -129,6 +129,9 @@ const ModuleEnglish: React.FC = () => {
     const isCorrect = evaluateEnglishAnswer(answer, currentQuestion.correctAnswer);
     const pointsEarned = calculateSoftScore(isCorrect, elapsedTime, targetTime);
 
+    const isDirectMode = Boolean(state.accessibilitySettings?.directQuestions);
+    const activeQuestionText = (isDirectMode && currentQuestion.directText) ? currentQuestion.directText : currentQuestion.text;
+
     recordAnswer({
       questionId: currentQuestion.id,
       topic: currentQuestion.topic,
@@ -138,7 +141,7 @@ const ModuleEnglish: React.FC = () => {
       usedExtraTime: isExceeded,
       pointsEarned,
       difficultyLevel: currentLevel,
-      questionText: currentQuestion.text,
+      questionText: activeQuestionText,
       userAnswer: answer,
       correctAnswer: currentQuestion.correctAnswer,
     });

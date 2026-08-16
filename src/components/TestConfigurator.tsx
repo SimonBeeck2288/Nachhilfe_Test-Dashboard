@@ -6,6 +6,7 @@ import type { StudentProfile } from '../types/student';
 import type { CustomTestConfig } from '../types/config';
 import { defaultConfig } from '../types/config';
 import { Sliders, Play, RotateCcw, User, ArrowLeft, Check } from 'lucide-react';
+import { AccessibilityModeSwitcher } from './AccessibilityModeSwitcher';
 
 const MATH_TOPICS = [
   'Addition',
@@ -238,6 +239,11 @@ export const TestConfigurator: React.FC<{ onCancel?: () => void }> = ({ onCancel
               />
             </div>
           )}
+        </div>
+
+        {/* Accessibility Mode Switcher */}
+        <div style={{ marginTop: '1rem' }}>
+          <AccessibilityModeSwitcher showDetails onSaveToProfile />
         </div>
       </div>
 

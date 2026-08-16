@@ -44,7 +44,12 @@ export const QuestionRenderer: React.FC<QuestionRendererProps> = ({
     return [];
   }, [question.type, question.options]);
 
-  // Reset input and stop audio when question changes or on unmount
+  const isDirectMode = Boolean(state.accessibilitySettings?.directQuestions);
+  const isReducedSensory = Boolean(state.accessibilitySettings?.reducedSensory);
+  const activeQuestionText = isDirectMode && question.directText ? question.directText : question.text;
+  const effectiveStoryContext = isDirectMode ? question.directStoryContext : (question.storyContext || question.directStoryContext);
+
+  // Reset input and stop audio when question or mode changes, or on unmount
   useEffect(() => {
     setInputValue(initialAnswer || '');
     stopSpeech();
@@ -52,7 +57,7 @@ export const QuestionRenderer: React.FC<QuestionRendererProps> = ({
     return () => {
       stopSpeech();
     };
-  }, [question.id, initialAnswer]);
+  }, [question.id, initialAnswer, isDirectMode]);
 
   const toggleTTS = () => {
     if (!isTTSSupported()) {
@@ -66,9 +71,9 @@ export const QuestionRenderer: React.FC<QuestionRendererProps> = ({
       return;
     }
 
-    let textToRead = question.text;
-    if (question.storyContext) {
-      textToRead = `${question.storyContext}. ${textToRead}`;
+    let textToRead = activeQuestionText;
+    if (effectiveStoryContext) {
+      textToRead = `${effectiveStoryContext}. ${textToRead}`;
     }
     if (question.readingPassage) {
       textToRead = `${textToRead}. ${question.readingPassage}`;
@@ -136,7 +141,23 @@ export const QuestionRenderer: React.FC<QuestionRendererProps> = ({
             </button>
           )}
         </div>
-        <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          {isDirectMode && (
+            <span
+              style={{
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                color: '#0369A1',
+                backgroundColor: '#E0F2FE',
+                padding: '0.25rem 0.6rem',
+                borderRadius: '12px',
+                border: '1px solid #BAE6FD',
+              }}
+              title="Direkt & Reizarm Modus aktiv"
+            >
+              [D/R] Direkt
+            </span>
+          )}
           <button
             type="button"
             className="btn btn-secondary"
@@ -167,8 +188,8 @@ export const QuestionRenderer: React.FC<QuestionRendererProps> = ({
         </div>
       )}
 
-      {/* STORY CONTEXT PREAMBLE */}
-      {question.storyContext && (
+      {/* STORY CONTEXT PREAMBLE - OMITTED IN DIRECT QUESTIONS MODE UNLESS DIRECT STORY CONTEXT IS PROVIDED */}
+      {effectiveStoryContext && (
         <div
           style={{
             backgroundColor: '#EFF6FF',
@@ -177,7 +198,7 @@ export const QuestionRenderer: React.FC<QuestionRendererProps> = ({
             borderRadius: '0.5rem',
             marginBottom: '1.25rem',
             textAlign: 'left',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+            boxShadow: isReducedSensory ? 'none' : '0 1px 3px rgba(0,0,0,0.04)',
           }}
         >
           <div
@@ -193,10 +214,10 @@ export const QuestionRenderer: React.FC<QuestionRendererProps> = ({
               gap: '0.4rem',
             }}
           >
-            <Compass size={16} /> Alltags-Szenario / Sachaufgabe
+            <Compass size={16} /> Sachaufgabe / Kontext
           </div>
           <div style={{ fontSize: '0.98rem', color: '#1E3A8A', lineHeight: '1.5', fontWeight: 500 }}>
-            {question.storyContext}
+            {effectiveStoryContext}
           </div>
         </div>
       )}
@@ -212,7 +233,7 @@ export const QuestionRenderer: React.FC<QuestionRendererProps> = ({
             marginBottom: '1.5rem',
             textAlign: 'left',
             whiteSpace: 'pre-line',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+            boxShadow: isReducedSensory ? 'none' : '0 1px 3px rgba(0,0,0,0.05)',
             position: 'relative',
           }}
         >
@@ -251,13 +272,13 @@ export const QuestionRenderer: React.FC<QuestionRendererProps> = ({
 
       {/* GEOMETRY SVG DIAGRAM */}
       {(question.subject === 'math' || question.topic === 'Geometrie' || question.diagramData) && (
-        <GeometryDiagram text={question.text} topic={question.topic} diagramData={question.diagramData} />
+        <GeometryDiagram text={activeQuestionText} topic={question.topic} diagramData={question.diagramData} />
       )}
 
       {/* QUESTION TEXT + AUDIO TTS BUTTON */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
         <h3 style={{ fontSize: '1.4rem', margin: 0, textAlign: 'center' }}>
-          {question.text}
+          {activeQuestionText}
         </h3>
         {!question.readingPassage && (
           <button

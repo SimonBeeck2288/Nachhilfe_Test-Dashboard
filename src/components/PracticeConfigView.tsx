@@ -15,6 +15,7 @@ import {
   GraduationCap,
   Sparkles,
 } from 'lucide-react';
+import { AccessibilityModeSwitcher } from './AccessibilityModeSwitcher';
 
 export function mapGradeToLevel(gradeLevel?: number | string): number {
   if (!gradeLevel) return 2;
@@ -523,6 +524,11 @@ export const PracticeConfigView: React.FC<PracticeConfigViewProps> = ({
               <span>Timer deaktivieren (entspanntes Üben)</span>
             </label>
           </div>
+        </div>
+
+        {/* Accessibility Mode Switcher */}
+        <div style={{ marginTop: '1.25rem', paddingTop: '1.25rem', borderTop: '1px solid var(--border)' }}>
+          <AccessibilityModeSwitcher showDetails onSaveToProfile />
         </div>
       </div>
 

@@ -9,6 +9,7 @@ import {
 } from '../utils/studentRoster';
 import type { StudentProfile } from '../types/student';
 import { StudentSwitcherModal } from '../components/StudentSwitcherModal';
+import { AccessibilityModeSwitcher } from '../components/AccessibilityModeSwitcher';
 import {
   Play,
   UserPlus,
@@ -218,6 +219,7 @@ const Home: React.FC = () => {
           </div>
 
           <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <AccessibilityModeSwitcher compact onSaveToProfile />
             <button
               className="btn btn-primary"
               onClick={() => handleStartTest(currentStudent || undefined)}
@@ -325,6 +327,21 @@ const Home: React.FC = () => {
                     {student.problemSubject && (
                       <span style={{ backgroundColor: '#FEE2E2', color: '#B91C1C', padding: '0.2rem 0.5rem', borderRadius: '4px', fontWeight: 600 }}>
                         ⚠ {student.problemSubject}
+                      </span>
+                    )}
+                    {(student.accessibilitySettings?.directQuestions || student.accessibilitySettings?.reducedSensory) && (
+                      <span
+                        style={{
+                          backgroundColor: '#E0F2FE',
+                          color: '#0369A1',
+                          padding: '0.2rem 0.5rem',
+                          borderRadius: '4px',
+                          fontWeight: 700,
+                          border: '1px solid #BAE6FD',
+                        }}
+                        title="Direkt & Reizarm Modus konfiguriert"
+                      >
+                        [D/R] Direkt
                       </span>
                     )}
                   </div>

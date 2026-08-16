@@ -1,4 +1,5 @@
-import type { StudentProfile } from '../types/student';
+import type { StudentProfile, AccessibilitySettings } from '../types/student';
+import { DEFAULT_ACCESSIBILITY_SETTINGS } from '../types/student';
 
 const ROSTER_STORAGE_KEY = 'diagnostic_student_roster';
 
@@ -30,6 +31,36 @@ const getStorage = (): Storage | null => {
   return null;
 };
 
+export const getAccessibilitySettings = (
+  studentOrSettings?: Partial<StudentProfile> | Partial<AccessibilitySettings> | null
+): AccessibilitySettings => {
+  if (!studentOrSettings) {
+    return { ...DEFAULT_ACCESSIBILITY_SETTINGS };
+  }
+  const settings: Partial<AccessibilitySettings> =
+    'accessibilitySettings' in studentOrSettings && studentOrSettings.accessibilitySettings
+      ? studentOrSettings.accessibilitySettings
+      : (studentOrSettings as Partial<AccessibilitySettings>);
+
+  if (settings && (settings.preset !== undefined || settings.directQuestions !== undefined || settings.reducedSensory !== undefined)) {
+    const directQuestions = Boolean(settings.directQuestions);
+    const reducedSensory = Boolean(settings.reducedSensory);
+    let preset = settings.preset;
+    if (!preset) {
+      if (directQuestions && reducedSensory) preset = 'direct_reduced_sensory';
+      else if (!directQuestions && !reducedSensory) preset = 'standard';
+      else preset = 'custom';
+    }
+    return {
+      preset,
+      directQuestions,
+      reducedSensory,
+    };
+  }
+
+  return { ...DEFAULT_ACCESSIBILITY_SETTINGS };
+};
+
 export const getStudentRoster = (): StudentProfile[] => {
   const storage = getStorage();
   if (!storage) {
@@ -58,6 +89,7 @@ export const getStudentRoster = (): StudentProfile[] => {
       hobbies: student.hobbies ?? [],
       learningPreferences: student.learningPreferences ?? [],
       customNotes: student.customNotes ?? '',
+      accessibilitySettings: getAccessibilitySettings(student),
       createdAt: student.createdAt || new Date().toISOString(),
       updatedAt: student.updatedAt || new Date().toISOString(),
     }));
@@ -95,6 +127,7 @@ export const saveStudentProfile = (
         hobbies: data.hobbies ?? current.hobbies ?? [],
         learningPreferences: data.learningPreferences ?? current.learningPreferences ?? [],
         customNotes: data.customNotes ?? current.customNotes ?? '',
+        accessibilitySettings: data.accessibilitySettings ?? current.accessibilitySettings ?? { ...DEFAULT_ACCESSIBILITY_SETTINGS },
         updatedAt: now,
       };
       roster[index] = updatedProfile;
@@ -121,6 +154,7 @@ export const saveStudentProfile = (
     hobbies: data.hobbies ?? [],
     learningPreferences: data.learningPreferences ?? [],
     customNotes: data.customNotes ?? '',
+    accessibilitySettings: data.accessibilitySettings ?? { ...DEFAULT_ACCESSIBILITY_SETTINGS },
     createdAt: now,
     updatedAt: now,
   };
@@ -153,6 +187,7 @@ export const updateStudentProfile = (
     hobbies: updates.hobbies ?? current.hobbies ?? [],
     learningPreferences: updates.learningPreferences ?? current.learningPreferences ?? [],
     customNotes: updates.customNotes ?? current.customNotes ?? '',
+    accessibilitySettings: updates.accessibilitySettings ?? current.accessibilitySettings ?? { ...DEFAULT_ACCESSIBILITY_SETTINGS },
     updatedAt: new Date().toISOString(),
   };
 

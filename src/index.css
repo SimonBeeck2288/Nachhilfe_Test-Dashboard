@@ -219,3 +219,35 @@ p {
   }
 }
 
+/* Neurodivergent / Reduced Sensory Mode */
+.reduced-sensory,
+.reduced-sensory *,
+.reduced-sensory *::before,
+.reduced-sensory *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  animation-delay: 0ms !important;
+  transition-duration: 0.001ms !important;
+  transition-delay: 0ms !important;
+  scroll-behavior: auto !important;
+}
+
+.reduced-sensory .mascot-float,
+.reduced-sensory .avatar-bounce,
+.reduced-sensory .streak-flame,
+.reduced-sensory .pulse-animation,
+.reduced-sensory .animate-bounce,
+.reduced-sensory .animate-pulse,
+.reduced-sensory .animate-spin,
+.reduced-sensory .fade-in {
+  animation: none !important;
+  transform: none !important;
+}
+
+.reduced-sensory .card,
+.reduced-sensory .btn {
+  transition: none !important;
+}
+
+
+

@@ -556,9 +556,27 @@ const Dashboard: React.FC = () => {
                     onClick={() => setIsAvatarModalOpen(true)}
                   />
                   <div>
-                    <h2 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 800, color: 'var(--primary)' }}>
-                      {state.studentName || 'Schüler/in'}
-                    </h2>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <h2 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 800, color: 'var(--primary)' }}>
+                        {state.studentName || 'Schüler/in'}
+                      </h2>
+                      {(state.accessibilitySettings?.directQuestions || state.accessibilitySettings?.reducedSensory) && (
+                        <span
+                          style={{
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            backgroundColor: '#E0F2FE',
+                            color: '#0369A1',
+                            padding: '0.15rem 0.45rem',
+                            borderRadius: '4px',
+                            border: '1px solid #BAE6FD',
+                          }}
+                          title="Direkt & Reizarm Modus [D/R]"
+                        >
+                          [D/R]
+                        </span>
+                      )}
+                    </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.35rem' }}>
                       <div
                         style={{
@@ -816,7 +834,25 @@ const Dashboard: React.FC = () => {
                           {rec.studentName}
                         </td>
                         <td style={{ padding: '0.85rem 1rem' }}>
-                          {rec.subject}
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                            <span>{rec.subject}</span>
+                            {(rec.accessibilitySettings?.directQuestions || rec.accessibilitySettings?.reducedSensory) && (
+                              <span
+                                style={{
+                                  fontSize: '0.7rem',
+                                  fontWeight: 700,
+                                  backgroundColor: '#E0F2FE',
+                                  color: '#0369A1',
+                                  padding: '0.1rem 0.35rem',
+                                  borderRadius: '4px',
+                                  border: '1px solid #BAE6FD',
+                                }}
+                                title="Direkt & Reizarm Modus [D/R]"
+                              >
+                                [D/R]
+                              </span>
+                            )}
+                          </span>
                         </td>
                         <td style={{ padding: '0.85rem 1rem' }}>
                           <span style={{ backgroundColor: '#E0F2FE', color: '#0369A1', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.82rem', fontWeight: 600, marginRight: '0.4rem' }}>
@@ -956,9 +992,27 @@ const Dashboard: React.FC = () => {
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '2px solid var(--border)', paddingBottom: '0.75rem' }}>
               <div>
-                <h2 style={{ fontSize: '1.35rem', color: 'var(--primary)', margin: 0 }}>
-                  Test-Review: {reviewingSession.studentName}
-                </h2>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <h2 style={{ fontSize: '1.35rem', color: 'var(--primary)', margin: 0 }}>
+                    Test-Review: {reviewingSession.studentName}
+                  </h2>
+                  {(reviewingSession.accessibilitySettings?.directQuestions || reviewingSession.accessibilitySettings?.reducedSensory) && (
+                    <span
+                      style={{
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                        backgroundColor: '#E0F2FE',
+                        color: '#0369A1',
+                        padding: '0.15rem 0.45rem',
+                        borderRadius: '4px',
+                        border: '1px solid #BAE6FD',
+                      }}
+                      title="Direkt & Reizarm Modus [D/R]"
+                    >
+                      [D/R] Direkt & Reizarm
+                    </span>
+                  )}
+                </div>
                 <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                   Absolviert am: {new Date(reviewingSession.date).toLocaleString('de-DE')}
                 </span>

@@ -45,6 +45,22 @@ const Layout: React.FC = () => {
               }}>
                 <UserCheck size={16} />
                 {currentStudent ? `${currentStudent.name} (Kl. ${currentStudent.gradeLevel})` : state.studentName}
+                {(state.accessibilitySettings?.directQuestions || state.accessibilitySettings?.reducedSensory) && (
+                  <span
+                    style={{
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      backgroundColor: '#0284C7',
+                      color: '#FFFFFF',
+                      padding: '0.1rem 0.4rem',
+                      borderRadius: '10px',
+                      marginLeft: '0.2rem',
+                    }}
+                    title="Direkt & Reizarm Modus aktiv"
+                  >
+                    D/R
+                  </span>
+                )}
               </span>
             </button>
           )}

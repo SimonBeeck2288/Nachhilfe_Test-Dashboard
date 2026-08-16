@@ -25,6 +25,8 @@ export interface GeneratedExerciseItem {
   topicName: string;
   level: number;
   questionText: string;
+  directText?: string;
+  directStoryContext?: string;
   options?: string[];
   correctAnswer: string;
   explanation: string;

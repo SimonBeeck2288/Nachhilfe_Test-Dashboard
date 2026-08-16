@@ -131,13 +131,17 @@ export const PracticeSessionView: React.FC<PracticeSessionViewProps> = ({
   const [aiModalMode, setAiModalMode] = useState<PromptMode>('socratic');
 
   let sessionStudent = null;
+  let sessionState = null;
   try {
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const session = useTestSession();
+    sessionState = session?.state;
     sessionStudent = session?.currentStudent || session?.state?.currentStudent;
   } catch {
     // Component used outside TestSessionProvider context
   }
+
+  const isDirectMode = Boolean(sessionState?.accessibilitySettings?.directQuestions);
 
   const handleOpenAiModal = (mode: PromptMode = 'socratic') => {
     let activeStudent = sessionStudent;
@@ -603,36 +607,45 @@ export const PracticeSessionView: React.FC<PracticeSessionViewProps> = ({
         }}
       >
         {/* Story Context if available */}
-        {currentExercise.storyContext && (
-          <div
-            style={{
-              backgroundColor: '#F8FAFC',
-              borderLeft: '4px solid var(--primary)',
-              padding: '0.75rem 1rem',
-              borderRadius: '0 var(--radius-md) var(--radius-md) 0',
-              fontSize: '0.9rem',
-              color: 'var(--text-muted)',
-              fontStyle: 'italic',
-            }}
-          >
-            📖 {currentExercise.storyContext}
-          </div>
-        )}
+        {(() => {
+          const effectiveStoryContext = isDirectMode ? currentExercise.directStoryContext : (currentExercise.storyContext || currentExercise.directStoryContext);
+          const activeQuestionText = isDirectMode && currentExercise.directText ? currentExercise.directText : currentExercise.questionText;
 
-        {/* Question Text */}
-        <div>
-          <h3
-            style={{
-              fontSize: '1.25rem',
-              fontWeight: 700,
-              color: 'var(--text-color)',
-              lineHeight: 1.4,
-              margin: 0,
-            }}
-          >
-            {currentExercise.questionText}
-          </h3>
-        </div>
+          return (
+            <>
+              {effectiveStoryContext && (
+                <div
+                  style={{
+                    backgroundColor: '#F8FAFC',
+                    borderLeft: '4px solid var(--primary)',
+                    padding: '0.75rem 1rem',
+                    borderRadius: '0 var(--radius-md) var(--radius-md) 0',
+                    fontSize: '0.9rem',
+                    color: 'var(--text-muted)',
+                    fontStyle: 'italic',
+                  }}
+                >
+                  📖 {effectiveStoryContext}
+                </div>
+              )}
+
+              {/* Question Text */}
+              <div>
+                <h3
+                  style={{
+                    fontSize: '1.25rem',
+                    fontWeight: 700,
+                    color: 'var(--text-color)',
+                    lineHeight: 1.4,
+                    margin: 0,
+                  }}
+                >
+                  {activeQuestionText}
+                </h3>
+              </div>
+            </>
+          );
+        })()}
 
         {/* Options / Input Form */}
         <div>

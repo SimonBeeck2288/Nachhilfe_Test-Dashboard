@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useTestSession } from '../context/TestSessionContext';
 import { getStudentRoster, saveStudentProfile } from '../utils/studentRoster';
-import type { StudentProfile } from '../types/student';
+import type { StudentProfile, AccessibilitySettings } from '../types/student';
+import { DEFAULT_ACCESSIBILITY_SETTINGS, DIRECT_REDUCED_SENSORY_SETTINGS } from '../types/student';
 import {
   Users,
   UserPlus,
@@ -17,6 +18,8 @@ import {
   Tag,
   Sparkles,
   Heart,
+  Eye,
+  Zap,
 } from 'lucide-react';
 
 export interface StudentSwitcherModalProps {
@@ -55,6 +58,9 @@ export const StudentSwitcherModal: React.FC<StudentSwitcherModalProps> = ({
   const [hobbies, setHobbies] = useState<string[]>([]);
   const [learningPreferences, setLearningPreferences] = useState<string[]>([]);
   const [customNotes, setCustomNotes] = useState('');
+  const [accessibilitySettings, setAccessibilitySettings] = useState<AccessibilitySettings>({
+    ...DEFAULT_ACCESSIBILITY_SETTINGS,
+  });
 
   // Custom Input Fields
   const [customHobbyInput, setCustomHobbyInput] = useState('');
@@ -74,6 +80,7 @@ export const StudentSwitcherModal: React.FC<StudentSwitcherModalProps> = ({
     setHobbies([]);
     setLearningPreferences([]);
     setCustomNotes('');
+    setAccessibilitySettings({ ...DEFAULT_ACCESSIBILITY_SETTINGS });
     setCustomHobbyInput('');
     setCustomPrefInput('');
   };
@@ -139,6 +146,7 @@ export const StudentSwitcherModal: React.FC<StudentSwitcherModalProps> = ({
     setHobbies(student.hobbies || []);
     setLearningPreferences(student.learningPreferences || []);
     setCustomNotes(student.customNotes || '');
+    setAccessibilitySettings(student.accessibilitySettings ? { ...DEFAULT_ACCESSIBILITY_SETTINGS, ...student.accessibilitySettings } : { ...DEFAULT_ACCESSIBILITY_SETTINGS });
     setCustomHobbyInput('');
     setCustomPrefInput('');
     setMode('create');
@@ -196,6 +204,7 @@ export const StudentSwitcherModal: React.FC<StudentSwitcherModalProps> = ({
       hobbies,
       learningPreferences,
       customNotes: customNotes.trim(),
+      accessibilitySettings,
     });
 
     refreshRoster();
@@ -449,9 +458,25 @@ export const StudentSwitcherModal: React.FC<StudentSwitcherModalProps> = ({
                           <div style={{ fontWeight: 600, color: '#1E293B', fontSize: '0.95rem' }}>
                             {student.name}
                           </div>
-                          <div style={{ fontSize: '0.8rem', color: '#64748B' }}>
-                            Klassenstufe {student.gradeLevel}
-                            {student.favoriteSubject ? ` • Vorliebe: ${student.favoriteSubject}` : ''}
+                          <div style={{ fontSize: '0.8rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                            <span>Klassenstufe {student.gradeLevel}</span>
+                            {student.favoriteSubject ? <span>• Vorliebe: {student.favoriteSubject}</span> : null}
+                            {(student.accessibilitySettings?.directQuestions || student.accessibilitySettings?.reducedSensory) && (
+                              <span
+                                style={{
+                                  fontSize: '0.68rem',
+                                  fontWeight: 700,
+                                  backgroundColor: '#E0F2FE',
+                                  color: '#0369A1',
+                                  padding: '0.08rem 0.35rem',
+                                  borderRadius: '4px',
+                                  border: '1px solid #BAE6FD',
+                                }}
+                                title="Direkt & Reizarm Modus konfiguriert"
+                              >
+                                [D/R]
+                              </span>
+                            )}
                           </div>
                           {((student.hobbies && student.hobbies.length > 0) ||
                             (student.learningPreferences && student.learningPreferences.length > 0)) && (
@@ -886,6 +911,107 @@ export const StudentSwitcherModal: React.FC<StudentSwitcherModalProps> = ({
                 rows={2}
                 style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #CBD5E1', resize: 'vertical' }}
               />
+            </div>
+
+            {/* Section: Lern- & Darstellungsmodus (Neurodivergenz / Reizarmut) */}
+            <div style={{ backgroundColor: '#F0F9FF', padding: '0.85rem', borderRadius: '8px', border: '1px solid #BAE6FD' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', fontWeight: 600, color: '#0369A1', margin: 0 }}>
+                  <Eye size={16} color="#0284C7" /> Lern- & Darstellungsmodus (Direkt & Reizarm)
+                </label>
+                <span
+                  style={{
+                    fontSize: '0.68rem',
+                    fontWeight: 700,
+                    backgroundColor: accessibilitySettings.directQuestions && accessibilitySettings.reducedSensory ? '#0284C7' : '#E2E8F0',
+                    color: accessibilitySettings.directQuestions && accessibilitySettings.reducedSensory ? '#FFFFFF' : '#475569',
+                    padding: '0.1rem 0.35rem',
+                    borderRadius: '4px',
+                  }}
+                >
+                  [D/R]
+                </span>
+              </div>
+              <p style={{ margin: '0 0 0.6rem 0', fontSize: '0.76rem', color: '#475569', lineHeight: 1.3 }}>
+                Ideal für autistische oder reizempfindliche Schüler: Sachlich-direkte Fragestellungen (ohne narrative Umwege) und ruhige UI.
+              </p>
+
+              {/* Quick Preset Buttons */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '0.6rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setAccessibilitySettings({ ...DEFAULT_ACCESSIBILITY_SETTINGS })}
+                  style={{
+                    padding: '0.4rem 0.6rem',
+                    borderRadius: '6px',
+                    border: !accessibilitySettings.directQuestions && !accessibilitySettings.reducedSensory ? '2px solid #6366F1' : '1px solid #CBD5E1',
+                    backgroundColor: !accessibilitySettings.directQuestions && !accessibilitySettings.reducedSensory ? '#EEF2FF' : '#FFFFFF',
+                    color: !accessibilitySettings.directQuestions && !accessibilitySettings.reducedSensory ? '#4338CA' : '#334155',
+                    fontSize: '0.78rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.3rem',
+                  }}
+                >
+                  <Sparkles size={13} /> Standardmodus
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setAccessibilitySettings({ ...DIRECT_REDUCED_SENSORY_SETTINGS })}
+                  style={{
+                    padding: '0.4rem 0.6rem',
+                    borderRadius: '6px',
+                    border: accessibilitySettings.directQuestions && accessibilitySettings.reducedSensory ? '2px solid #0284C7' : '1px solid #CBD5E1',
+                    backgroundColor: accessibilitySettings.directQuestions && accessibilitySettings.reducedSensory ? '#E0F2FE' : '#FFFFFF',
+                    color: accessibilitySettings.directQuestions && accessibilitySettings.reducedSensory ? '#0369A1' : '#334155',
+                    fontSize: '0.78rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.3rem',
+                  }}
+                >
+                  <Zap size={13} /> Direkt & Reizarm [D/R]
+                </button>
+              </div>
+
+              {/* Checkbox Options */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', paddingTop: '0.4rem', borderTop: '1px solid #E0F2FE' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.78rem', color: '#1E293B', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={accessibilitySettings.directQuestions}
+                    onChange={(e) =>
+                      setAccessibilitySettings((prev) => ({
+                        ...prev,
+                        directQuestions: e.target.checked,
+                        preset: e.target.checked && prev.reducedSensory ? 'direct_reduced_sensory' : (!e.target.checked && !prev.reducedSensory ? 'standard' : 'custom'),
+                      }))
+                    }
+                  />
+                  <span>Direkt-Fragen (sachlich präzise, keine Äpfel-/Murmeln-Geschichten)</span>
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.78rem', color: '#1E293B', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={accessibilitySettings.reducedSensory}
+                    onChange={(e) =>
+                      setAccessibilitySettings((prev) => ({
+                        ...prev,
+                        reducedSensory: e.target.checked,
+                        preset: prev.directQuestions && e.target.checked ? 'direct_reduced_sensory' : (!prev.directQuestions && !e.target.checked ? 'standard' : 'custom'),
+                      }))
+                    }
+                  />
+                  <span>Reizreduzierte Darstellung (keine Animationen, ruhige UI)</span>
+                </label>
+              </div>
             </div>
 
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>

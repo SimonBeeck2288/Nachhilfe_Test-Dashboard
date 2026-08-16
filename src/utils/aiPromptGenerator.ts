@@ -29,6 +29,8 @@ export function generateGeminiPrompt(mode: PromptMode, context: AiPromptContext 
   // Data Source A: Personality
   const studentName = profile.name?.trim() || 'Schüler/in';
   const grade = profile.gradeLevel ?? perf.gradeLevel ?? 'Nicht angegeben';
+  const isDirectMode = Boolean(profile.accessibilitySettings?.directQuestions);
+  const isReducedSensory = Boolean(profile.accessibilitySettings?.reducedSensory);
   const hobbiesList = profile.hobbies && profile.hobbies.length > 0
     ? profile.hobbies.join(', ')
     : 'Allgemeine Interessen / Keine Hobbys angegeben';
@@ -36,6 +38,9 @@ export function generateGeminiPrompt(mode: PromptMode, context: AiPromptContext 
     ? profile.learningPreferences.join(', ')
     : 'Schritt-für-Schritt, Anschauliche Erklärungen';
   const customNotes = profile.customNotes?.trim() || 'Keine Besonderheiten hinterlegt';
+  const accessibilityNote = isDirectMode || isReducedSensory
+    ? `Direkt & Reizarm [D/R] aktiv (${isDirectMode ? 'sachlich-direkte und unmissverständliche Sprache ohne narrative Ausschmückung/Metaphern; ' : ''}${isReducedSensory ? 'reizreduzierte, klare Struktur' : ''})`
+    : 'Standard';
 
   // Data Source B: Empirical Performance
   const strengthsList = perf.strengths && perf.strengths.length > 0
@@ -83,8 +88,15 @@ export function generateGeminiPrompt(mode: PromptMode, context: AiPromptContext 
 
     case 'personalized':
       modeTitle = '💡 Personalisierte Konzept-Erklärung';
-      roleDescription = `Du bist ein begeisternder KI-Nachhilfelehrer für NachhilfeTest. Erkläre das Thema "${topicStr}" so anschaulich wie möglich. Nutze dafür bildhafte Metaphern und Beispiele aus den Hobbys des Schülers (${hobbiesList}) sowie seinen bevorzugten Lernstil (${preferencesList}).`;
-      specificInstructions = `**Handlungsanweisungen:**
+      roleDescription = isDirectMode
+        ? `Du bist ein sachlicher und präziser KI-Nachhilfelehrer für NachhilfeTest. Erkläre das Thema "${topicStr}" sachlich-direkt, logisch und ohne metaphorische Ausschmückung, abgestimmt auf den Lernstil (${preferencesList}).`
+        : `Du bist ein begeisternder KI-Nachhilfelehrer für NachhilfeTest. Erkläre das Thema "${topicStr}" so anschaulich wie möglich. Nutze dafür bildhafte Metaphern und Beispiele aus den Hobbys des Schülers (${hobbiesList}) sowie seinen bevorzugten Lernstil (${preferencesList}).`;
+      specificInstructions = isDirectMode
+        ? `**Handlungsanweisungen:**
+1. Erkläre die Grundregel/das Konzept hinter der Aufgabe "${qText}" sachlich-direkt und unmissverständlich.
+2. Formuliere die Erklärung ohne ausschmückende Metaphern oder narrative Geschichten, sondern klar und logisch strukturiert.
+3. Zeige nachvollziehbar auf, warum die Antwort "${uAnswer}" nicht stimmt und wie man systematisch zur richtigen Lösung ("${cAnswer}") gelangt.`
+        : `**Handlungsanweisungen:**
 1. Erkläre die Grundregel/das Konzept hinter der Aufgabe "${qText}" verständlich und anschaulich.
 2. Baue eine konkrete Analogie oder Geschichte ein, die direkt an die Hobbys (${hobbiesList}) anknüpft.
 3. Zeige nachvollziehbar auf, warum die Antwort "${uAnswer}" nicht stimmt und wie man systematisch zur richtigen Lösung ("${cAnswer}") gelangt.`;
@@ -92,8 +104,16 @@ export function generateGeminiPrompt(mode: PromptMode, context: AiPromptContext 
 
     case 'practice_tasks':
       modeTitle = '📝 3 Neue Maßgeschneiderte Übungsaufgaben';
-      roleDescription = `Du bist ein kreativer KI-Aufgabenersteller für NachhilfeTest. Erstelle genau 3 neue Übungsaufgaben zum Thema "${topicStr}" (${subjectStr}, ${levelStr}) für Klasse ${grade}.`;
-      specificInstructions = `**Handlungsanweisungen:**
+      roleDescription = isDirectMode
+        ? `Du bist ein sachlicher KI-Aufgabenersteller für NachhilfeTest. Erstelle genau 3 sachlich-direkte Übungsaufgaben zum Thema "${topicStr}" (${subjectStr}, ${levelStr}) für Klasse ${grade}.`
+        : `Du bist ein kreativer KI-Aufgabenersteller für NachhilfeTest. Erstelle genau 3 neue Übungsaufgaben zum Thema "${topicStr}" (${subjectStr}, ${levelStr}) für Klasse ${grade}.`;
+      specificInstructions = isDirectMode
+        ? `**Handlungsanweisungen:**
+1. Erstelle genau 3 abwechslungsreiche Übungsaufgaben (Aufgabe 1: Basisverständnis, Aufgabe 2: Mittlere Schwierigkeit, Aufgabe 3: Anwendungs-/Transferaufgabe).
+2. Formuliere die Aufgaben als sachlich-direkte Fragestellungen ohne narrative/metaphorische Einkleidung.
+3. Formatiere die 3 Aufgaben übersichtlich.
+4. Füge am Ende unter einer deutlichen Überschrift "--- LÖSUNGEN & ERKLÄRUNGEN ---" die vollständigen Musterlösungen inklusive Erklärungen bei.`
+        : `**Handlungsanweisungen:**
 1. Erstelle genau 3 abwechslungsreiche Übungsaufgaben (Aufgabe 1: Basisverständnis, Aufgabe 2: Mittlere Schwierigkeit, Aufgabe 3: Anwendungs-/Transferaufgabe).
 2. Flechte Begriffe, Namen oder Szenarien aus den Hobbys des Schülers (${hobbiesList}) in die Aufgabenstellungen ein.
 3. Formatiere die 3 Aufgaben übersichtlich.
@@ -110,6 +130,7 @@ export function generateGeminiPrompt(mode: PromptMode, context: AiPromptContext 
 ### 👤 Schüler-Profil & Persönlichkeit
 - **Name:** ${studentName}
 - **Klassenstufe:** ${grade}
+- **Lern- & Kommunikationsmodus:** ${accessibilityNote}
 - **Hobbys & Interessen:** ${hobbiesList}
 - **Bevorzugte Lernstile:** ${preferencesList}
 - **Anmerkungen:** ${customNotes}

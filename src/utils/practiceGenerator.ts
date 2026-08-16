@@ -98,6 +98,7 @@ function generateMathVariation(
   const id = `ex_math_${topicId}_l${level}_${exerciseIndex}`;
 
   let questionText = '';
+  let directText = '';
   let correctAnswer = '';
   let explanation = '';
   let mascotTip = '';
@@ -117,6 +118,7 @@ function generateMathVariation(
     const b = getRandomInt(rng, 3, maxVal);
     storyContext = `${name} sammelt bunte Gegenstände.`;
     questionText = `${name} hat ${a} ${item1} und bekommt ${b} ${item2} dazu. Wie viele hat ${name} insgesamt?`;
+    directText = `Berechne: ${a} + ${b} = ?`;
     correctAnswer = String(a + b);
     explanation = `${a} + ${b} = ${a + b}`;
     mascotTip = 'Rechne die beiden Zahlen zusammen.';
@@ -128,6 +130,7 @@ function generateMathVariation(
     const b = getRandomInt(rng, 1, a - 1); // guarantee positive integer
     storyContext = `Teilen und Abgeben von Dingen.`;
     questionText = `${name} hat ${a} ${item}. Davon werden ${b} ${item} abgegeben. Wie viele bleiben übrig?`;
+    directText = `Berechne: ${a} - ${b} = ?`;
     correctAnswer = String(a - b);
     explanation = `${a} - ${b} = ${a - b}`;
     mascotTip = 'Ziehe die kleiner Zahl von der größeren Zahl ab.';
@@ -138,6 +141,7 @@ function generateMathVariation(
     const b = getRandomInt(rng, 2, maxFactor);
     storyContext = `${name} kauft mehreren Packungen im Geschäft.`;
     questionText = `${name} kauft ${a} Packungen mit jeweils ${b} Stiften. Wie viele Stifte sind das insgesamt?`;
+    directText = `Berechne: ${a} × ${b} = ?`;
     correctAnswer = String(a * b);
     explanation = `${a} × ${b} = ${a * b}`;
     mascotTip = 'Nutze das Einmaleins.';
@@ -148,6 +152,7 @@ function generateMathVariation(
     const total = divisor * ans; // guarantee positive integer result
     storyContext = `${name} verteilt Gewinne gleichmäßig.`;
     questionText = `${total} Kekse werden gleichmäßig auf ${divisor} Kinder verteilt. Wie viele Kekse bekommt jedes Kind?`;
+    directText = `Berechne: ${total} ÷ ${divisor} = ?`;
     correctAnswer = String(ans);
     explanation = `${total} ÷ ${divisor} = ${ans}`;
     mascotTip = `Überlege: Welche Zahl mal ${divisor} ergibt ${total}?`;
@@ -157,6 +162,7 @@ function generateMathVariation(
     const num = getRandomInt(rng, 1, den - 1);
     if (level >= 3 && getRandomInt(rng, 1, 2) === 1) {
       questionText = `Markiere auf dem Kreis genau ${num} von ${den} Stücken:`;
+      directText = `Markiere auf dem Kreis genau ${num} von ${den} Stücken (${num}/${den}):`;
       correctAnswer = `${num}/${den}`;
       targetFraction = { numerator: num, denominator: den };
       explanation = `${num} von ${den} Stücken entspricht dem Bruch ${num}/${den}.`;
@@ -164,6 +170,7 @@ function generateMathVariation(
     } else {
       const dec = (num / den).toString().replace('.', ',');
       questionText = `Wandle den Bruch ${num}/${den} in eine Dezimalzahl um:`;
+      directText = `Wandle den Bruch ${num}/${den} in eine Dezimalzahl um:`;
       correctAnswer = dec;
       explanation = `${num} ÷ ${den} = ${dec}`;
       mascotTip = 'Teile den Zähler durch den Nenner.';
@@ -173,6 +180,7 @@ function generateMathVariation(
     const b = getRandomInt(rng, 1, 89) / 10;
     const sum = (a + b).toFixed(1).replace('.', ',');
     questionText = `Berechne: ${a.toFixed(1).replace('.', ',')} € + ${b.toFixed(1).replace('.', ',')} € = ?`;
+    directText = `Berechne: ${a.toFixed(1).replace('.', ',')} + ${b.toFixed(1).replace('.', ',')} = ?`;
     correctAnswer = sum;
     explanation = `${a.toFixed(1).replace('.', ',')} + ${b.toFixed(1).replace('.', ',')} = ${sum} €`;
     mascotTip = 'Rechne zuerst die Euros, dann die Cents zusammen.';
@@ -182,6 +190,7 @@ function generateMathVariation(
     const ans = (perc * val) / 100;
     storyContext = 'Rabatt-Aktion im Ausverkauf.';
     questionText = `Ein Artikel kostet ${val} €. Es gibt ${perc}% Rabatt. Wie viel Euro spart man?`;
+    directText = `Berechne ${perc}% von ${val} € (in Euro):`;
     correctAnswer = String(ans);
     explanation = `${perc}% von ${val} € = (${perc} / 100) × ${val} = ${ans} €`;
     mascotTip = `Teile ${val} durch 100 und nimm das Ergebnis mal ${perc}.`;
@@ -191,6 +200,7 @@ function generateMathVariation(
       const x = getRandomInt(rng, 2, 10);
       const c = a * x;
       questionText = `Löse nach x auf: ${a}x = ${c}`;
+      directText = `Löse die Gleichung nach x auf: ${a}x = ${c}`;
       correctAnswer = String(x);
       explanation = `Teile beide Seiten durch ${a}: x = ${c} ÷ ${a} = ${x}`;
       mascotTip = 'Isoliere x durch Division.';
@@ -202,6 +212,7 @@ function generateMathVariation(
       const d = (a - c) * x - b;
       const signD = d >= 0 ? `+ ${d}` : `- ${Math.abs(d)}`;
       questionText = `Löse nach x auf: ${a}x - ${b} = ${c}x ${signD}`;
+      directText = `Löse die Gleichung nach x auf: ${a}x - ${b} = ${c}x ${signD}`;
       correctAnswer = String(x);
       explanation = `Bringe alle x-Terme auf eine Seite und Zahlen auf die andere Seite: x = ${x}`;
       mascotTip = 'Ziehe den kleineren x-Term von beiden Seiten ab.';
@@ -210,6 +221,7 @@ function generateMathVariation(
     const a = getRandomInt(rng, 2, 15);
     const b = getRandomInt(rng, 2, 20);
     questionText = `Berechne: (-${a}) + ${b} = ?`;
+    directText = `Berechne: (-${a}) + ${b} = ?`;
     correctAnswer = String(-a + b);
     explanation = `(-${a}) + ${b} = ${-a + b}`;
     mascotTip = 'Stelle dir ein Thermometer vor.';
@@ -217,6 +229,7 @@ function generateMathVariation(
     if (level <= 2) {
       const side = getRandomInt(rng, 2, 12);
       questionText = `Ein quadratisches Beet hat eine Seitenlänge von ${side} cm. Wie groß ist der Umfang in cm?`;
+      directText = `Berechne den Umfang eines Quadrats mit Seitenlänge a = ${side} cm in cm:`;
       correctAnswer = String(side * 4);
       explanation = `Umfang = 4 × ${side} cm = ${side * 4} cm`;
       diagramData = { shape: 'rectangle', labels: { a: side, b: side } };
@@ -225,6 +238,7 @@ function generateMathVariation(
       const l = getRandomInt(rng, 3, 10);
       const w = getRandomInt(rng, 2, 8);
       questionText = `Ein Rechteck ist ${l} cm lang und ${w} cm breit. Wie groß ist der Flächeninhalt in cm²?`;
+      directText = `Berechne den Flächeninhalt eines Rechtecks mit Länge ${l} cm und Breite ${w} cm in cm²:`;
       correctAnswer = String(l * w);
       explanation = `Flächeninhalt = Länge × Breite = ${l} × ${w} = ${l * w} cm²`;
       diagramData = { shape: 'rectangle', labels: { a: l, b: w } };
@@ -233,6 +247,7 @@ function generateMathVariation(
       const g = getRandomInt(rng, 2, 6) * 2; // even
       const h = getRandomInt(rng, 3, 9);
       questionText = `Ein Dreieck hat Grundseite g = ${g} cm und Höhe h = ${h} cm. Wie groß ist der Flächeninhalt in cm²?`;
+      directText = `Berechne den Flächeninhalt eines Dreiecks mit Grundseite g = ${g} cm und Höhe h = ${h} cm in cm²:`;
       correctAnswer = String((g * h) / 2);
       explanation = `Flächeninhalt = (g × h) ÷ 2 = (${g} × ${h}) ÷ 2 = ${(g * h) / 2} cm²`;
       diagramData = { shape: 'triangle', labels: { g, h } };
@@ -241,6 +256,7 @@ function generateMathVariation(
       const g = getRandomInt(rng, 4, 10);
       const h = getRandomInt(rng, 3, 8);
       questionText = `Ein Parallelogramm hat Grundseite g = ${g} cm und Höhe h = ${h} cm. Wie groß ist der Flächeninhalt in cm²?`;
+      directText = `Berechne den Flächeninhalt eines Parallelogramms mit Grundseite g = ${g} cm und Höhe h = ${h} cm in cm²:`;
       correctAnswer = String(g * h);
       explanation = `Flächeninhalt = g × h = ${g} × ${h} = ${g * h} cm²`;
       diagramData = { shape: 'parallelogram', labels: { g, h } };
@@ -248,6 +264,7 @@ function generateMathVariation(
     } else if (level === 6) {
       const a = getRandomInt(rng, 2, 10);
       questionText = `Ein Würfel hat Kantenlänge a = ${a} cm. Wie groß ist das Volumen V in cm³?`;
+      directText = `Berechne das Volumen eines Würfels mit Kantenlänge a = ${a} cm in cm³:`;
       correctAnswer = String(a * a * a);
       explanation = `Volumen = a³ = ${a} × ${a} × ${a} = ${a * a * a} cm³`;
       diagramData = { shape: 'cube', labels: { a } };
@@ -256,6 +273,7 @@ function generateMathVariation(
       const pythTriples = [[3, 4, 5], [6, 8, 10], [5, 12, 13], [9, 12, 15], [8, 15, 17]];
       const triple = getRandomChoice(rng, pythTriples);
       questionText = `In einem rechtwinkligen Dreieck sind Katheten a = ${triple[0]} cm und b = ${triple[1]} cm. Wie lang ist die Hypotenuse c in cm?`;
+      directText = `Berechne die Hypotenuse c im rechtwinkligen Dreieck mit a = ${triple[0]} cm und b = ${triple[1]} cm in cm:`;
       correctAnswer = String(triple[2]);
       explanation = `c = √(a² + b²) = √(${triple[0]}² + ${triple[1]}²) = ${triple[2]} cm`;
       diagramData = { shape: 'right-triangle', labels: { a: triple[0], b: triple[1], c: triple[2] } };
@@ -264,6 +282,7 @@ function generateMathVariation(
   } else if (topicLower.includes('potenz')) {
     const base = getRandomInt(rng, 2, 12);
     questionText = `Berechne den Wert der Potenz ${base}²:`;
+    directText = `Berechne: ${base}² = ?`;
     correctAnswer = String(base * base);
     explanation = `${base}² = ${base} × ${base} = ${base * base}`;
     mascotTip = 'Multipliziere die Zahl mit sich selbst.';
@@ -271,6 +290,7 @@ function generateMathVariation(
     const a = getRandomInt(rng, 2, 9);
     const b = getRandomInt(rng, 2, 9);
     questionText = `Fasse zusammen: ${a}x + ${b}x`;
+    directText = `Fasse zusammen: ${a}x + ${b}x = ?`;
     correctAnswer = `${a + b}x`;
     explanation = `(${a} + ${b})x = ${a + b}x`;
     mascotTip = 'Addiere die Koeffizienten der gleichen Variablen.';
@@ -284,6 +304,7 @@ function generateMathVariation(
       `2x + ${2 * a}`
     ]);
     questionText = `Wende die 1. Binomische Formel an: (x + ${a})²`;
+    directText = `Wende die 1. Binomische Formel an: (x + ${a})²`;
     correctAnswer = correct;
     options = opts;
     explanation = `(a + b)² = a² + 2ab + b² => x² + 2·${a}·x + ${a}² = ${correct}`;
@@ -294,6 +315,7 @@ function generateMathVariation(
     const targetAvg = getRandomInt(rng, 5, 12);
     const z = targetAvg * 3 - x - y;
     questionText = `Berechne den Mittelwert (Durchschnitt) von ${x}, ${y} und ${z}:`;
+    directText = `Berechne den Mittelwert (Durchschnitt) von ${x}, ${y} und ${z}:`;
     correctAnswer = String(targetAvg);
     explanation = `(${x} + ${y} + ${z}) ÷ 3 = ${targetAvg * 3} ÷ 3 = ${targetAvg}`;
     mascotTip = 'Addiere alle Werte und teile durch deren Anzahl.';
@@ -302,6 +324,7 @@ function generateMathVariation(
     const a = getRandomInt(rng, 2, level * 10);
     const b = getRandomInt(rng, 2, level * 5);
     questionText = `Berechne: ${a} + ${b} = ?`;
+    directText = `Berechne: ${a} + ${b} = ?`;
     correctAnswer = String(a + b);
     explanation = `${a} + ${b} = ${a + b}`;
     mascotTip = 'Addiere die beiden Zahlen.';
@@ -315,6 +338,7 @@ function generateMathVariation(
     topicName,
     level,
     questionText,
+    directText: directText || undefined,
     options,
     correctAnswer,
     explanation,
@@ -379,6 +403,8 @@ function generateEnglishVariation(
       topicName,
       level: chosen.level,
       questionText: text,
+      directText: chosen.directText || text,
+      directStoryContext: chosen.directStoryContext,
       options,
       correctAnswer,
       explanation: chosen.explanation || `Die richtige Antwort ist "${correctAnswer}".`,
@@ -494,6 +520,7 @@ function generateEnglishVariation(
     topicName,
     level,
     questionText,
+    directText: questionText,
     options,
     correctAnswer,
     explanation,

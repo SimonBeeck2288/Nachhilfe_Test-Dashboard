@@ -134,6 +134,9 @@ const ModuleMath: React.FC = () => {
     const isCorrect = evaluateMathAnswer(answer, currentQuestion.correctAnswer);
     const pointsEarned = calculateSoftScore(isCorrect, elapsedTime, targetTime);
 
+    const isDirectMode = Boolean(state.accessibilitySettings?.directQuestions);
+    const activeQuestionText = (isDirectMode && currentQuestion.directText) ? currentQuestion.directText : currentQuestion.text;
+
     recordAnswer({
       questionId: currentQuestion.id,
       topic: currentQuestion.topic,
@@ -143,7 +146,7 @@ const ModuleMath: React.FC = () => {
       usedExtraTime: isExceeded,
       pointsEarned,
       difficultyLevel: currentLevel,
-      questionText: currentQuestion.text,
+      questionText: activeQuestionText,
       userAnswer: answer,
       correctAnswer: currentQuestion.correctAnswer,
     });

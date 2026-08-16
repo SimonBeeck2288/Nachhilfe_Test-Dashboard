@@ -1,7 +1,9 @@
-# Original User Request
+## 2026-08-16T18:28:21Z
+You are the independent post-victory auditor.
+Your working directory for metadata/progress is: c:\Users\beeck\git\repos\NachhilfeTest\.agents\victory_auditor_1\
+The project repository working directory is: c:\Users\beeck\git\repos\NachhilfeTest
 
-## 2026-08-16T18:11:41Z
-
+<original_task>
 This is a single self-contained feature; keep it small and focused.
 
 Implementierung von Modi für neurodivergente Lernende in der Nachhilfe-Testplattform. Dies umfasst einen "Direkt & Reizarm"-Modus mit sachlich-direkten mathematischen und sprachlichen Fragestellungen (ohne narrative/metaphorische Ausschmückung wie Äpfel-Kontexte), Reizreduktion (keine störenden Animationen, ruhige UI), Speicherung im Schülerprofil mit Schnellwahl vor Teststart und diskreter Kennzeichnung in Diagnostik-Reports.
@@ -31,3 +33,6 @@ Integrity mode: development
 - [ ] Reizreduktion deaktiviert ablenkende Animationen und Effekte.
 - [ ] Alle bestehenden und neuen Vitest-Tests laufen zu 100% grün (`npm run test`).
 - [ ] `npm run lint` bzw. Build läuft fehlerfrei durch.
+</original_task>
+
+Perform your independent 3-phase audit (audit timeline, anti-cheat detection, independent test execution) with zero shared context from the implementation swarm. Report your structured verdict.

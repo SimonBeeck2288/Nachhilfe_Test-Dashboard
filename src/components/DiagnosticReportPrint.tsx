@@ -41,6 +41,8 @@ const DiagnosticReportPrint: React.FC<DiagnosticReportPrintProps> = ({ onClose, 
     ? sessionRecord.markedQuestionIds || []
     : state.markedQuestionIds || [];
   const gradeLevel = state.currentStudent?.gradeLevel || (typeof mathLevel === 'number' ? Math.max(1, Math.min(13, mathLevel + 4)) : 5);
+  const accessibilitySettings = sessionRecord?.accessibilitySettings || state.accessibilitySettings;
+  const isDirectAndReduced = Boolean(accessibilitySettings?.directQuestions || accessibilitySettings?.reducedSensory);
 
   const formattedDate = sessionRecord
     ? new Date(sessionRecord.date).toLocaleDateString('de-DE', {
@@ -314,6 +316,23 @@ const DiagnosticReportPrint: React.FC<DiagnosticReportPrintProps> = ({ onClose, 
           <div style={{ textAlign: 'right', fontSize: '0.85rem', color: '#475569' }}>
             <div><strong>Datum:</strong> {formattedDate}</div>
             <div><strong>Status:</strong> Abgeschlossen</div>
+            {isDirectAndReduced && (
+              <div style={{ marginTop: '0.15rem' }}>
+                <span
+                  style={{
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    backgroundColor: '#E0F2FE',
+                    color: '#0369A1',
+                    padding: '0.1rem 0.4rem',
+                    borderRadius: '4px',
+                    border: '1px solid #BAE6FD',
+                  }}
+                >
+                  Modus: Direkt & Reizarm [D/R]
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -321,7 +340,7 @@ const DiagnosticReportPrint: React.FC<DiagnosticReportPrintProps> = ({ onClose, 
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(5, 1fr)',
+            gridTemplateColumns: isDirectAndReduced ? 'repeat(6, 1fr)' : 'repeat(5, 1fr)',
             gap: '0.75rem',
             backgroundColor: '#F8FAFC',
             padding: '0.75rem 1rem',
@@ -367,6 +386,16 @@ const DiagnosticReportPrint: React.FC<DiagnosticReportPrintProps> = ({ onClose, 
               {markedQuestionIds.length} {markedQuestionIds.length === 1 ? 'Frage' : 'Fragen'}
             </span>
           </div>
+          {isDirectAndReduced && (
+            <div>
+              <span style={{ fontSize: '0.72rem', color: '#64748B', textTransform: 'uppercase', fontWeight: 700, display: 'block' }}>
+                Testmodus
+              </span>
+              <span style={{ fontSize: '0.82rem', color: '#0369A1', fontWeight: 700 }}>
+                [D/R] Direkt
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Subject Performance Summary Cards (3 Columns) */}
@@ -580,7 +609,9 @@ const DiagnosticReportPrint: React.FC<DiagnosticReportPrintProps> = ({ onClose, 
         >
           <div>
             <div><strong>Tutor / Lehrkraft:</strong> ___________________________</div>
-            <div style={{ marginTop: '0.2rem', fontSize: '0.72rem' }}>Nachhilfe-Diagnose-System v2.0</div>
+            <div style={{ marginTop: '0.2rem', fontSize: '0.72rem' }}>
+              Nachhilfe-Diagnose-System v2.0{isDirectAndReduced ? ' • [D/R]' : ''}
+            </div>
           </div>
           <div style={{ textAlign: 'right' }}>
             <div><strong>Unterschrift Eltern / Erziehungsberechtigte:</strong></div>
