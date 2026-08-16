@@ -1,14 +1,16 @@
-## 2026-08-09T20:46:36Z
-You are Explorer 1: Student State & Roster Explorer.
-Your working directory is `c:\Users\beeck\git\repos\NachhilfeTest\.agents\explorer_survey_1`.
-Please create your working directory if needed and write your analysis to `c:\Users\beeck\git\repos\NachhilfeTest\.agents\explorer_survey_1\analysis.md`.
+## 2026-08-16T19:15:34Z
+You are explorer_survey_1, an exploration agent.
+Your working directory is: c:\Users\beeck\git\repos\NachhilfeTest\.agents\explorer_survey_1
 
-First, read `c:\Users\beeck\git\repos\NachhilfeTest\.agents\ORIGINAL_REQUEST.md` to understand the full context and requirements (especially R1).
+Mission:
+Read ORIGINAL_REQUEST.md at: c:\Users\beeck\git\repos\NachhilfeTest\.agents\ORIGINAL_REQUEST.md
+Investigate the existing codebase architecture related to:
+1. Student roster storage & management (e.g., src/types/student.ts, src/utils/studentRoster.ts, localStorage keys, data schemas, default profiles).
+2. Session history storage & management (e.g., src/types/history.ts, src/utils/sessionHistory.ts, structure of session records, filtering, aggregations).
+3. Existing schema versioning, validation, migrations, or serialization/deserialization logic.
+4. How data is read, written, and reactive across the app (React state, context, custom hooks, or event listeners).
 
-Investigate the codebase in `c:\Users\beeck\git\repos\NachhilfeTest`:
-1. Find and analyze the definition of `StudentProfile` and related types (check `src/types/student.ts`, `src/types/index.ts`, etc.).
-2. Find and analyze student roster persistence and helper functions (check `src/utils/studentRoster.ts` or similar files).
-3. Find and analyze `StudentSwitcherModal.tsx` and how student profiles are created, edited, and selected.
-4. Document exact interfaces, field names, current state management, and clear step-by-step guidance on how to extend `StudentProfile` with `hobbies: string[]`, `learningPreferences: string[]`, and `customNotes: string`, and how UI inputs/tags should be added in `StudentSwitcherModal.tsx`.
-
-Write your detailed handoff report to `c:\Users\beeck\git\repos\NachhilfeTest\.agents\explorer_survey_1\handoff.md` and send a summary message back to the orchestrator.
+Requirements for your output:
+- Write your findings to c:\Users\beeck\git\repos\NachhilfeTest\.agents\explorer_survey_1\analysis.md
+- Write a self-contained handoff report at c:\Users\beeck\git\repos\NachhilfeTest\.agents\explorer_survey_1\handoff.md
+- When finished, send a message to the orchestrator with a summary and the file paths.

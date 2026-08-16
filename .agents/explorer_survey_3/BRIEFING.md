@@ -1,41 +1,49 @@
-# BRIEFING — 2026-08-09T18:47:15Z
+# BRIEFING — 2026-08-16T19:17:30Z
 
 ## Mission
-Analyze test suite, architecture, documentation, and requirements for AI prompt generation (R2, R5, R6) in NachhilfeTest.
+Investigate existing UI components, accessibility patterns, sync/backup UI integration design, Vitest test suite setup, test utilities, mocks, and testing strategy (Tiers 1-4).
 
 ## 🔒 My Identity
-- Archetype: Explorer
-- Roles: Architecture, Docs & Test Suite Explorer
+- Archetype: explorer
+- Roles: UI & testing exploration, read-only investigation, test architecture & accessibility analysis
 - Working directory: c:\Users\beeck\git\repos\NachhilfeTest\.agents\explorer_survey_3
-- Original parent: 49037e98-44d7-4461-8eb4-bb96bb73845b
-- Milestone: Initial Survey & Architecture Design
+- Original parent: a78e22a6-e27c-4d6c-8f14-78360ece9baa
+- Milestone: 01_survey_and_architecture
 
 ## 🔒 Key Constraints
-- Read-only investigation — do NOT implement code changes in src/
-- Follow Handoff Protocol and verification standards
-- Output analysis to analysis.md and handoff report to handoff.md
+- Read-only investigation — do NOT implement
+- Explore existing UI, modals, toasts, nav bar, test runner setup, accessibility, theme system
+- Provide UI integration design & comprehensive testing strategy for Sync & Backup
 
 ## Current Parent
-- Conversation ID: 49037e98-44d7-4461-8eb4-bb96bb73845b
-- Updated: 2026-08-09T18:47:15Z
+- Conversation ID: a78e22a6-e27c-4d6c-8f14-78360ece9baa
+- Updated: 2026-08-16T19:17:30Z
 
 ## Investigation State
 - **Explored paths**:
-  - `src/tests/` (35 test files, 286 tests verified passing with 100% success)
-  - `package.json` (Vitest & Oxlint configs)
-  - `PROJECT.md`, `AGENTS.md`, `TEST_INFRA.md`
-  - `src/types/student.ts`, `src/utils/studentRoster.ts`
-  - `src/components/PracticeSessionView.tsx`, `src/pages/Dashboard.tsx`, `src/components/DiagnosticReportPrint.tsx`
+  - `src/components/Layout.tsx` (Top Navigation Bar, active student pill, modal mounts)
+  - `src/components/StudentSwitcherModal.tsx` (Roster list, profile form, safety alert, tag management)
+  - `src/components/TestConfigurator.tsx` (Topic matrix, duration, levels, accessibility)
+  - `src/components/AccessibilityModeSwitcher.tsx` (Compact pill & card view, preset & custom modes)
+  - `src/components/AiPromptModal.tsx` (3-mode tabs, toast feedback banner, sidecar launcher, ESC listener, ARIA)
+  - `src/utils/focusHelper.ts` (`focusAndPlaceCursorAtEnd` with `requestAnimationFrame`)
+  - `src/context/TestSessionContext.tsx` (`reducedSensory` html class binding, active session state)
+  - `src/index.css` (CSS tokens, print styles, `.reduced-sensory` rules)
+  - `src/utils/studentRoster.ts` & `src/utils/sessionHistory.ts` (Storage operations, timestamp records)
+  - `src/tests/*` (47 Vitest test suites, 405 tests passing)
 - **Key findings**:
-  - Full blueprint designed for `aiPromptGenerator.ts`, `src/tests/ai_prompt_generator.test.ts`, `AiPromptModal.tsx`, `AI_PROMPT_GUIDELINES.md`, and updates to `PROJECT.md`.
-  - Confirmed 100% Vitest test suite pass rate (286 tests across 35 test files).
-- **Unexplored areas**: None, initial survey completed.
+  - Recommended UI architecture: Dedicated `SyncBackupModal.tsx` with two tabs (JSON File Backup + GitHub Gist Cloud-Sync).
+  - Global triggers in `Layout.tsx` (Top Nav Bar), `StudentSwitcherModal.tsx` (footer), `Home.tsx`, and `Dashboard.tsx`.
+  - Rich user flows with Merge Preview & Conflict Resolution dialog (timestamp-based merge by `updatedAt` / `sessionId`).
+  - Comprehensive 4-Tier test strategy designed for schema validation, edge cases/network errors, UI integration, and real-world multi-device E2E journeys.
+- **Unexplored areas**: None within scope.
 
 ## Key Decisions Made
-- Structured 3 contextual prompt modes (`socratic`, `personalized`, `practice_tasks`) incorporating 3 data sources (student personality, empirical performance, question context).
-- Designed `AiPromptModal.tsx` popup sidecar (`480x750`) launcher for Google Gemini Gem.
-- Detailed implementation specs for `AI_PROMPT_GUIDELINES.md` and `PROJECT.md`.
+- Fully documented all UI patterns, accessibility requirements, user flows, and 4-tier test specifications in `analysis.md` and `handoff.md`.
 
 ## Artifact Index
-- analysis.md — Complete analysis report
-- handoff.md — 5-component handoff report
+- DISPATCH.md — Initial dispatch message
+- BRIEFING.md — Situational awareness
+- progress.md — Liveness heartbeat
+- analysis.md — Comprehensive UI, accessibility and testing survey
+- handoff.md — 5-Component self-contained handoff report

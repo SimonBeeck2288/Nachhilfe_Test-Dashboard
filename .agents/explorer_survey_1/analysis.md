@@ -1,283 +1,222 @@
-# Technical Analysis: Student Profile Expansion & Roster Management
+# Codebase Architecture Analysis: Student Roster, Session History, Schema & Reactivity
+
+**Date**: 2026-08-16  
+**Investigator**: explorer_survey_1  
+**Project**: NachhilfeTest (Multi-Device Synchronization Survey)
+
+---
 
 ## Executive Summary
-This analysis details the exact codebase structure, interfaces, data persistence mechanisms, and UI components involved in student profile management within **NachhilfeTest**. It outlines step-by-step modifications required to expand `StudentProfile` with personality and learning preferences (`hobbies: string[]`, `learningPreferences: string[]`, `customNotes: string`) to empower the zero-cost Gemini Gem AI tutoring engine.
+This analysis investigates the storage architecture, data models, persistence layers, validation/migration mechanisms, and state reactivity in `NachhilfeTest` in preparation for implementing multi-device synchronization (JSON File Export/Import and GitHub Gist sync).
+
+The application is a pure client-side Single Page Application (React 19 + TypeScript + Vite) using browser `localStorage` as its primary persistent store. It currently maintains two persistent collections (`diagnostic_student_roster` and `diagnostic_session_history`) and one active session state cache (`diagnosticSession`). There is currently no explicit schema versioning header in localStorage, relying instead on runtime defensive default mapping during deserialization.
 
 ---
 
-## 1. Type Definitions Analysis (`src/types/student.ts`)
+## 1. Student Roster Storage & Management
 
-### Current State
-File: `src/types/student.ts` (11 lines)
-
+### 1.1 Types & Data Schema (`src/types/student.ts`)
 ```typescript
+export type AccessibilityPreset = 'standard' | 'direct_reduced_sensory' | 'custom';
+
+export interface AccessibilitySettings {
+  preset: AccessibilityPreset;
+  directQuestions: boolean; // Sachlich-direkte Fragestellungen ohne narrative Ausschmückung
+  reducedSensory: boolean;  // Reizreduktion (keine störenden Animationen, ruhige UI)
+}
+
 export interface StudentProfile {
-  id: string;
-  name: string;
-  gradeLevel: number | string;
-  favoriteSubject: string;
-  problemSubject: string;
-  notes: string;
-  createdAt: string;
-  updatedAt: string;
+  id: string;                               // e.g. "std_1723838491023_a9b1c"
+  name: string;                             // e.g. "Max Mustermann"
+  gradeLevel: number | string;              // e.g. 5, 7, "7"
+  favoriteSubject: string;                  // e.g. "Mathematik"
+  problemSubject: string;                   // e.g. "Englisch"
+  notes: string;                            // Educator / diagnostic notes
+  hobbies?: string[];                       // e.g. ["Gaming", "Minecraft"]
+  learningPreferences?: string[];           // e.g. ["Visuell", "Schritt-für-Schritt"]
+  customNotes?: string;                     // Individual AI tutor instructions
+  accessibilitySettings?: AccessibilitySettings;
+  createdAt: string;                        // ISO 8601 string
+  updatedAt: string;                        // ISO 8601 string
 }
 ```
 
-### Required Modifications
-To support structured personality and pedagogical preferences without breaking existing stored profiles or historical test records, `StudentProfile` must be extended with 3 new fields:
+### 1.2 Storage Implementation (`src/utils/studentRoster.ts`)
+- **Storage Key**: `'diagnostic_student_roster'`
+- **In-Memory Fallback**: `let memoryRoster: StudentProfile[] = [];` to support SSR or environments with disabled/unavailable localStorage.
+- **Availability Check**: `isStorageAvailable(storage?: Storage | null): boolean` performs a probe write/remove with key `'__storage_test__'`.
+- **ID Generation**: `std_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
+- **CRUD Operations**:
+  - `getStudentRoster(): StudentProfile[]`: Reads string from localStorage, parses JSON, checks `Array.isArray`, and maps every profile filling in defaults for legacy records (e.g. `gradeLevel ?? 5`, `hobbies ?? []`, `learningPreferences ?? []`, `customNotes ?? ''`, `accessibilitySettings: getAccessibilitySettings(student)`, `createdAt`/`updatedAt` fallback to `new Date().toISOString()`).
+  - `getStudentById(id: string): StudentProfile | undefined`
+  - `saveStudentProfile(data)`: Upserts a student profile. If an `id` is provided and found, updates fields and sets `updatedAt = new Date().toISOString()`. If not found, assigns a new ID, sets `createdAt` and `updatedAt` to now, appends to roster, and writes `JSON.stringify(roster)` to localStorage.
+  - `updateStudentProfile(id: string, updates: Partial<Omit<StudentProfile, 'id' | 'createdAt'>>)`: Merges updates, updates `updatedAt`, and writes to storage.
+  - `deleteStudentProfile(id: string): boolean`: Filters out the student and writes back.
+  - `clearStudentRoster(): void`: Clears memory array and removes key from storage.
 
+---
+
+## 2. Session History Storage & Management
+
+### 2.1 Types & Data Schema (`src/types/history.ts`)
 ```typescript
-export interface StudentProfile {
-  id: string;
-  name: string;
-  gradeLevel: number | string;
-  favoriteSubject: string;
-  problemSubject: string;
-  notes: string; // Preserved for backwards compatibility
-  hobbies?: string[]; // e.g. ['Gaming', 'Fußball', 'Minecraft', 'Musik']
-  learningPreferences?: string[]; // e.g. ['Mit Hobbys erklären', 'Schritt-für-Schritt', 'Visuell']
-  customNotes?: string; // Extended free-text pedagogical notes
-  createdAt: string;
-  updatedAt: string;
+export interface TopicBreakdownItem {
+  topic: string;
+  correct: number;
+  total: number;
+  accuracy: number; // 0.0 - 1.0
+  avgTime: number;  // in seconds
+}
+
+export interface CognitionStatsRecord {
+  correct: number;
+  total: number;
+  accuracy: number; // 0.0 - 1.0
+  avgReactionTime: number; // in ms
+}
+
+export interface TestSessionRecord {
+  sessionId: string;                        // e.g. "sess_1723838491023_x7y2z"
+  studentId: string;                        // Foreign key to StudentProfile.id, or "guest"
+  studentName: string;                      // Student name at test time
+  date: string;                             // ISO 8601 timestamp
+  subject: string;                          // e.g. "Mathematik & Englisch", "math", "english"
+  mathLevelReached: number;                 // 1 - 7
+  englishLevelReached: number;              // 1 - 7
+  score: number;                            // Total correct answers
+  totalQuestions: number;                   // Total answers recorded
+  topicBreakdown: Record<string, TopicBreakdownItem> | TopicBreakdownItem[];
+  cognitionStats?: CognitionStatsRecord | null;
+  answers: AnswerRecord[];
+  motivation?: number;
+  favoriteSubject?: string;
+  problemSubject?: string;
+  notes?: string;
+  interpretation?: string;
+  durationSeconds?: number;
+  markedQuestionIds?: string[];
+  accessibilitySettings?: AccessibilitySettings;
 }
 ```
 
-### Analysis & Type Safety Considerations
-1. **Optionality (`?`)**: Marking `hobbies?: string[]`, `learningPreferences?: string[]`, and `customNotes?: string` as optional ensures backward compatibility when deserializing legacy profiles stored in `localStorage` before this change.
-2. **Defensive Defaults**: Downstream components and prompt generators must normalize `student.hobbies || []`, `student.learningPreferences || []`, and `student.customNotes || student.notes || ''`.
+### 2.2 Storage Implementation (`src/utils/sessionHistory.ts`)
+- **Storage Key**: `'diagnostic_session_history'`
+- **In-Memory Fallback**: `let memoryHistory: TestSessionRecord[] = [];`
+- **ID Generation**: `sess_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
+- **Sorting Order**: `saveSessionRecord` prepends new sessions (`history.unshift(updatedRecord)`) so that `getSessionHistory()` returns the newest sessions first.
+- **Operations**:
+  - `getSessionHistory(): TestSessionRecord[]`: Returns parsed array.
+  - `getSessionById(sessionId: string): TestSessionRecord | undefined`
+  - `getSessionsByStudentId(studentId: string): TestSessionRecord[]`: Filters history where `record.studentId === studentId`.
+  - `saveSessionRecord(record: TestSessionRecord): TestSessionRecord`: Inserts or updates a session record and persists to localStorage.
+  - `deleteSessionRecord(sessionId: string): boolean`: Removes a session record by `sessionId`.
+  - `clearSessionHistory(): void`: Removes storage key and resets memory array.
+  - `getPastAskedQuestionIds(studentId?: string): Set<string>`: Queries the last 10 sessions for a student and aggregates asked `questionId`s to prevent question repetition.
+
+### 2.3 Consumption & Aggregations
+- **Dashboard (`src/pages/Dashboard.tsx`)**:
+  - Automatically invokes `saveSessionToHistory()` on mount if answers exist.
+  - Lists sessions in a searchable table with filtering by `searchTerm` (matching student name or subject).
+  - Supplies filtered sessions to three SVG analytics visualization components:
+    - `<ProgressionChart sessions={selectedSessions} />`: Level progression over time.
+    - `<TopicAccuracyChart sessions={selectedSessions} />`: Topic-level strength/weakness accuracy.
+    - `<CognitionTrendChart sessions={selectedSessions} />`: Reaction time and cognitive speed trends.
+  - Provides PDF print generation (`<DiagnosticReportPrint />`) and individual session review drilldown modal.
 
 ---
 
-## 2. Roster Persistence & Helper Functions (`src/utils/studentRoster.ts`)
+## 3. Schema Versioning, Validation, and Migrations
 
-### Current State
-File: `src/utils/studentRoster.ts` (127 lines)
-Storage key: `'diagnostic_student_roster'` in `localStorage`.
+### 3.1 Current Schema State
+- **No Explicit Schema Version in Storage**: Currently, the raw JSON stored in `localStorage` under `'diagnostic_student_roster'` and `'diagnostic_session_history'` is a top-level array of records (`StudentProfile[]` and `TestSessionRecord[]`). There is no outer envelope with version metadata.
+- **Runtime Defensive Migration**:
+  - When loading from storage, `getStudentRoster()` defensive mapping accommodates older data formats (e.g., profiles without `hobbies`, `learningPreferences`, `customNotes`, or `accessibilitySettings`).
+  - `TestSessionContext` accommodates legacy sessions without `accessibilitySettings` by defaulting to `DEFAULT_ACCESSIBILITY_SETTINGS`.
+- **Validation Depth**:
+  - Handled via simple type assertions and JSON try/catch blocks. Malformed JSON defaults to empty array without throwing.
 
-Key exported functions:
-- `getStudentRoster()`: Reads JSON from `localStorage`.
-- `getStudentById(id: string)`: Searches roster by ID.
-- `saveStudentProfile(data)`: Handles profile creation (generates `std_...` ID) and profile updating.
-- `updateStudentProfile(id, updates)`: Performs partial updates via object spread.
-- `deleteStudentProfile(id)`: Removes profile by ID.
-- `clearStudentRoster()`: Clears storage key.
-
-### Required Modifications
-
-1. **`getStudentRoster()` Sanitization / Migration**:
-Ensure default fallback values for new properties when parsing stored profiles:
+### 3.2 Required Schema for Sync & Export/Import
+To fulfill R1 (JSON export/import) and R2 (GitHub Gist sync), a formal payload contract is required:
 ```typescript
-export const getStudentRoster = (): StudentProfile[] => {
-  try {
-    const storage = getStorage();
-    if (!storage) return [];
-    const data = storage.getItem(ROSTER_STORAGE_KEY);
-    if (!data) return [];
-    const parsed = JSON.parse(data);
-    if (!Array.isArray(parsed)) return [];
-    
-    // Normalize new fields for backward compatibility
-    return parsed.map((student: any) => ({
-      ...student,
-      hobbies: Array.isArray(student.hobbies) ? student.hobbies : [],
-      learningPreferences: Array.isArray(student.learningPreferences) ? student.learningPreferences : [],
-      customNotes: typeof student.customNotes === 'string' ? student.customNotes : (student.notes || ''),
-    }));
-  } catch (error) {
-    console.error('Failed to read student roster from storage:', error);
-    return [];
-  }
-};
-```
-
-2. **`saveStudentProfile()` Function Signature & Persistence**:
-Update parameters and payload construction:
-```typescript
-export const saveStudentProfile = (
-  data: Omit<StudentProfile, 'id' | 'createdAt' | 'updatedAt'> & {
-    id?: string;
-    hobbies?: string[];
-    learningPreferences?: string[];
-    customNotes?: string;
-  }
-): StudentProfile => {
-  const roster = getStudentRoster();
-  const now = new Date().toISOString();
-
-  if (data.id) {
-    const index = roster.findIndex((s) => s.id === data.id);
-    if (index !== -1) {
-      const updatedProfile: StudentProfile = {
-        ...roster[index],
-        name: data.name,
-        gradeLevel: data.gradeLevel,
-        favoriteSubject: data.favoriteSubject,
-        problemSubject: data.problemSubject,
-        notes: data.notes ?? data.customNotes ?? roster[index].notes ?? '',
-        hobbies: data.hobbies || roster[index].hobbies || [],
-        learningPreferences: data.learningPreferences || roster[index].learningPreferences || [],
-        customNotes: data.customNotes ?? data.notes ?? roster[index].customNotes ?? roster[index].notes ?? '',
-        updatedAt: now,
-      };
-      roster[index] = updatedProfile;
-      try {
-        const storage = getStorage();
-        if (storage) storage.setItem(ROSTER_STORAGE_KEY, JSON.stringify(roster));
-      } catch (error) {
-        console.error('Failed to save student profile to storage:', error);
-      }
-      return updatedProfile;
-    }
-  }
-
-  const newProfile: StudentProfile = {
-    id: data.id || `std_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-    name: data.name,
-    gradeLevel: data.gradeLevel,
-    favoriteSubject: data.favoriteSubject || '',
-    problemSubject: data.problemSubject || '',
-    notes: data.notes || data.customNotes || '',
-    hobbies: data.hobbies || [],
-    learningPreferences: data.learningPreferences || [],
-    customNotes: data.customNotes || data.notes || '',
-    createdAt: now,
-    updatedAt: now,
+export interface DiagnosticExportPayload {
+  schemaVersion: number;                    // e.g. 1
+  exportedAt: string;                      // ISO 8601 timestamp
+  appVersion?: string;
+  source?: string;                         // e.g. "NachhilfeTest"
+  data: {
+    roster: StudentProfile[];
+    history: TestSessionRecord[];
   };
-
-  roster.push(newProfile);
-  try {
-    const storage = getStorage();
-    if (storage) storage.setItem(ROSTER_STORAGE_KEY, JSON.stringify(roster));
-  } catch (error) {
-    console.error('Failed to save student profile to storage:', error);
-  }
-  return newProfile;
-};
+}
 ```
+
+### 3.3 Conflict Resolution & Merge Strategy
+1. **Student Profiles Merge Strategy**:
+   - Primary identifier: `student.id` (string).
+   - If ID matches between incoming and local profile:
+     - Compare `updatedAt` timestamps (ISO 8601).
+     - The profile with the more recent `updatedAt` wins.
+     - Fallback if `updatedAt` is identical or missing: merge fields (preserve non-empty values).
+   - If ID exists only in incoming: append new profile to local roster.
+   - If ID exists only in local: retain local profile.
+2. **Session History Merge Strategy**:
+   - Primary identifier: `record.sessionId` (string).
+   - Deduplicate records by `sessionId`.
+   - For records with matching `sessionId`: retain the existing or incoming record (they are immutable session logs).
+   - Merge all unique sessions and sort by `date` descending (newest first).
 
 ---
 
-## 3. UI Component & Form State Analysis (`StudentSwitcherModal.tsx`)
+## 4. State Reactivity & Data Flow Architecture
 
-### Current State
-File: `src/components/StudentSwitcherModal.tsx` (515 lines)
-Modal modes: `'list' | 'create'`
-Controls profile selection, guest mode switching, and new profile creation.
-
-### Required Form Extensions for Profile Creation/Editing
-
-1. **State Extensions**:
-```typescript
-const [hobbies, setHobbies] = useState<string[]>([]);
-const [learningPreferences, setLearningPreferences] = useState<string[]>([]);
-const [customNotes, setCustomNotes] = useState('');
-const [customHobbyInput, setCustomHobbyInput] = useState('');
-const [customPrefInput, setCustomPrefInput] = useState('');
+### 4.1 React State & Context Flow
+```
+                     +----------------------------------------+
+                     |         TestSessionContext             |
+                     |  - state (TestSessionState)            |
+                     |  - currentStudent: StudentProfile|null |
+                     |  - saves to 'diagnosticSession'        |
+                     +-------------------+--------------------+
+                                         |
+            +----------------------------+----------------------------+
+            |                            |                            |
+            v                            v                            v
+   +-----------------+          +-----------------+          +-----------------+
+   |    Layout       |          |      Home       |          |    Dashboard    |
+   | - StudentHeader |          | - Roster Cards  |          | - Current Eval  |
+   | - SwitcherModal |          | - Start Test    |          | - Analytics     |
+   | - Navigation    |          | - Quick Modals  |          | - Session List  |
+   +-----------------+          +-----------------+          +-----------------+
+            |                            |
+            +----------------------------+
+                         |
+                         v
+            +-------------------------------------+
+            |      StudentSwitcherModal           |
+            |  - Reads getStudentRoster()         |
+            |  - Calls selectStudent(target)      |
+            |  - Calls saveStudentProfile(data)   |
+            +-------------------------------------+
 ```
 
-2. **Preset Tag Definitions**:
-```typescript
-export const PRESET_HOBBIES = [
-  'Gaming',
-  'Fußball',
-  'Minecraft',
-  'Musik',
-  'Lego',
-  'Tiere',
-  'Sport',
-  'Zeichnen',
-  'Programmieren',
-  'Lesen',
-  'Tanzen',
-  'Sci-Fi',
-];
-
-export const PRESET_PREFERENCES = [
-  'Mit Hobbys erklären',
-  'Schritt-für-Schritt',
-  'Visuell / Diagramme',
-  'Spielerisch / Gamification',
-  'Kurze Erklärungen',
-  'Praxisbeispiele',
-  'Keine Fachsprache',
-];
-```
-
-3. **Tag Toggle & Custom Tag Handlers**:
-- **Hobbies Tag Toggle**:
-  ```typescript
-  const toggleHobby = (hobby: string) => {
-    setHobbies((prev) =>
-      prev.includes(hobby) ? prev.filter((h) => h !== hobby) : [...prev, hobby]
-    );
-  };
-
-  const addCustomHobby = () => {
-    const trimmed = customHobbyInput.trim();
-    if (trimmed && !hobbies.includes(trimmed)) {
-      setHobbies((prev) => [...prev, trimmed]);
-      setCustomHobbyInput('');
-    }
-  };
-  ```
-- **Learning Preferences Tag Toggle**:
-  ```typescript
-  const togglePref = (pref: string) => {
-    setLearningPreferences((prev) =>
-      prev.includes(pref) ? prev.filter((p) => p !== pref) : [...prev, pref]
-    );
-  };
-
-  const addCustomPref = () => {
-    const trimmed = customPrefInput.trim();
-    if (trimmed && !learningPreferences.includes(trimmed)) {
-      setLearningPreferences((prev) => [...prev, trimmed]);
-      setCustomPrefInput('');
-    }
-  };
-  ```
-
-4. **UI Layout for Tag Selection**:
-- Section for **Interessen & Hobbys**: Render preset chips with active styling (`backgroundColor: '#DBEAFE'`, `color: '#1E40AF'`, `border: '1px solid #93C5FD'`). Render active custom chips with a remove `×` button. Render text input + "+" button for custom hobbies.
-- Section for **Bevorzugte Lernweise / Stil**: Render preset chips and custom tag input similarly.
-- Extended textarea for **Pädagogische Notizen & Besonderheiten** (`customNotes`).
-
-5. **`handleCreateSubmit` Update**:
-```typescript
-const handleCreateSubmit = (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!name.trim()) return;
-
-  const newProfile = saveStudentProfile({
-    name: name.trim(),
-    gradeLevel,
-    favoriteSubject: favoriteSubject.trim(),
-    problemSubject: problemSubject.trim(),
-    notes: customNotes.trim() || notes.trim(),
-    hobbies,
-    learningPreferences,
-    customNotes: customNotes.trim(),
-  });
-
-  refreshRoster();
-  handleSelectStudentClick(newProfile);
-};
-```
+### 4.2 Storage Event & Reactivity Observations
+- **Imperative Storage Access**: Components currently load roster and session history via explicit helper calls (`loadRoster()`, `getStudentRoster()`, `getSessionHistory()`) during `useEffect()` lifecycle events.
+- **Context Updates**: When a student is selected via `selectStudent()`, `TestSessionContext` updates `state.currentStudent`, which immediately re-renders all subscribers (`Layout`, `Dashboard`, `Home`).
+- **External/Remote Sync Reactivity Requirement**:
+  - When importing a JSON backup or pulling from GitHub Gist, localStorage is mutated.
+  - To ensure all components in the React tree update seamlessly without requiring a hard browser reload, a sync trigger or custom event (or helper in Context like `refreshStorageData()`) can dispatch a notify event (e.g., `window.dispatchEvent(new CustomEvent('storage_synced'))` or context state updates).
 
 ---
 
-## 4. Context Integration (`src/context/TestSessionContext.tsx`)
-
-`TestSessionContext` manages the active student state across the app.
-- `state.currentStudent` is of type `StudentProfile | null`.
-- When `saveCurrentStudentProfile(updates)` or `selectStudent(student)` is called, the full `StudentProfile` object (including `hobbies`, `learningPreferences`, `customNotes`) is retained in `state.currentStudent`.
-- Zero changes needed to `TestSessionState` interface contracts, because `currentStudent` already carries the full `StudentProfile` instance.
+## 5. UI Integration Points for Sync & Export/Import
+- **Primary Access Points identified**:
+  1. **Layout / Top Navigation Bar (`src/components/Layout.tsx`)**: Global sync icon/button or status pill next to student switcher.
+  2. **Student Switcher Modal (`src/components/StudentSwitcherModal.tsx`)**: Header action buttons ("Sync / Backup").
+  3. **Dashboard (`src/pages/Dashboard.tsx`)**: History tab toolbar for backup/export and restore/import.
+  4. **Home View (`src/pages/Home.tsx`)**: Roster banner action for cloud sync & local backup.
 
 ---
 
-## 5. Implementation Roadmap for Subsequent Agents
-
-1. **Implementer Step 1**: Update `src/types/student.ts` to include `hobbies?: string[]`, `learningPreferences?: string[]`, `customNotes?: string`.
-2. **Implementer Step 2**: Update `src/utils/studentRoster.ts` to sanitize loaded data and persist the new profile fields in `saveStudentProfile`.
-3. **Implementer Step 3**: Enhance `src/components/StudentSwitcherModal.tsx` with state, tag-picker UI for preset/custom hobbies and learning preferences, and custom notes textarea.
-4. **Implementer Step 4**: Add test cases to `src/utils/studentRoster.test.ts` and `src/tests/student_switching.test.ts` to verify CRUD persistence for `hobbies`, `learningPreferences`, and `customNotes`.
+## 6. Verification & Baseline Status
+- Automated test suite: `npm run test` executes **47 test files** with **405 unit and integration tests**, passing with **100% success (0 failures)**.
+- Code quality & linting: `npm run lint` (`oxlint`) passes with 0 errors.

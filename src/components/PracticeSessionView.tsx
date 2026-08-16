@@ -16,6 +16,7 @@ import type { AiPromptContext, PromptMode } from '../utils/aiPromptGenerator';
 import { getStudentRoster } from '../utils/studentRoster';
 import { useTestSession } from '../context/TestSessionContext';
 import { focusAndPlaceCursorAtEnd } from '../utils/focusHelper';
+import FloatingCalculator from './FloatingCalculator';
 
 
 export interface PracticeSessionResults {
@@ -930,6 +931,10 @@ export const PracticeSessionView: React.FC<PracticeSessionViewProps> = ({
         context={aiModalContext}
         initialMode={aiModalMode}
       />
+
+      {currentExercise?.subject === 'math' && !isCompleted && (
+        <FloatingCalculator resetKey={currentExercise?.id} />
+      )}
     </div>
   );
 };

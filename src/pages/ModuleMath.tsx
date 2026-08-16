@@ -12,6 +12,7 @@ import OverallProgressBar from '../components/OverallProgressBar';
 import ModuleTimeUpBanner from '../components/ModuleTimeUpBanner';
 import { MiniGameIntermission } from '../components/minigames/MiniGameIntermission';
 import { Flame, Award, Pause, Play } from 'lucide-react';
+import FloatingCalculator from '../components/FloatingCalculator';
 
 const ModuleMath: React.FC = () => {
   const navigate = useNavigate();
@@ -382,6 +383,10 @@ const ModuleMath: React.FC = () => {
         canStepBack={historyStack.length > 0}
         initialAnswer={historyStack[historyStack.length - 1]?.question.id === currentQuestion.id ? historyStack[historyStack.length - 1]?.userAnswer : ''}
       />
+
+      {!showIntermission && !moduleTimeUp && currentQuestion && (
+        <FloatingCalculator resetKey={currentQuestion.id} />
+      )}
     </div>
   );
 };

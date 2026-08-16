@@ -1,15 +1,21 @@
-## 2026-08-09T18:46:36Z
-You are Explorer 3: Architecture, Docs & Test Suite Explorer.
-Your working directory is `c:\Users\beeck\git\repos\NachhilfeTest\.agents\explorer_survey_3`.
-Please create your working directory if needed and write your analysis to `c:\Users\beeck\git\repos\NachhilfeTest\.agents\explorer_survey_3\analysis.md`.
+## 2026-08-16T19:15:34Z
+<USER_REQUEST>
+You are explorer_survey_3, a UI & testing exploration agent.
+Your working directory is: c:\Users\beeck\git\repos\NachhilfeTest\.agents\explorer_survey_3
 
-First, read `c:\Users\beeck\git\repos\NachhilfeTest\.agents\ORIGINAL_REQUEST.md` to understand the full context and requirements (especially R2, R5, and R6).
+Mission:
+Read ORIGINAL_REQUEST.md at: c:\Users\beeck\git\repos\NachhilfeTest\.agents\ORIGINAL_REQUEST.md
+Investigate the existing UI and test suite structure:
+1. Existing UI components: Student Switcher Modal, Top Navigation Bar, Test Configurator, Settings, Modal architecture, Toast / notification system.
+2. Accessibility patterns: focus management, keyboard navigation (Escape, Tab, Enter), ARIA attributes, dark mode & reduced sensory theme compliance in existing components (e.g. Tailwind classes, theme context).
+3. UI integration design for Sync & Backup:
+   - Dedicated Sync/Backup Modal vs integration into Student Switcher / Nav bar.
+   - User flow: Export JSON file download, Import JSON file upload with confirmation/merge preview, Gist configuration (Token, Gist ID, Test connection, Push, Pull, Auto-sync or manual sync).
+4. Existing Vitest test runner setup, test utilities, mocks (e.g., localStorage mocks, fetch mocks), test conventions in `src/tests/`.
+5. Strategy for comprehensive E2E & unit test coverage (Tiers 1-4).
 
-Investigate the codebase in `c:\Users\beeck\git\repos\NachhilfeTest`:
-1. Inspect the existing test suite structure in `src/tests/` (e.g. `studentRoster.test.ts`, `practiceGenerator.test.ts`, etc.) and how Vitest and linting (`oxlint` or similar) are configured and executed.
-2. Inspect existing documentation files such as `PROJECT.md` or guidelines.
-3. Determine exact requirements and structure for `aiPromptGenerator.ts` and its test suite `src/tests/ai_prompt_generator.test.ts`.
-4. Determine exact requirements and structure for `AiPromptModal.tsx` (components, styling/Tailwind/Lucide icons, tab switching, clipboard copy, `window.open` sidecar launcher, ChatGPT/HuggingChat secondary links, toast notification).
-5. Document architectural guidelines for `AI_PROMPT_GUIDELINES.md` and updates needed for `PROJECT.md`.
-
-Write your detailed handoff report to `c:\Users\beeck\git\repos\NachhilfeTest\.agents\explorer_survey_3\handoff.md` and send a summary message back to the orchestrator.
+Requirements for your output:
+- Write your findings to c:\Users\beeck\git\repos\NachhilfeTest\.agents\explorer_survey_3\analysis.md
+- Write a self-contained handoff report at c:\Users\beeck\git\repos\NachhilfeTest\.agents\explorer_survey_3\handoff.md
+- When finished, send a message to the orchestrator with a summary and the file paths.
+</USER_REQUEST>

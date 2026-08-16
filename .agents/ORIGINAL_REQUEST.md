@@ -1,33 +1,45 @@
 # Original User Request
 
-## 2026-08-16T18:11:41Z
+## 2026-08-16T19:15:09Z
 
-This is a single self-contained feature; keep it small and focused.
+Implement multi-device synchronization for student profiles and test session history in NachhilfeTest using GitHub Gist and JSON File Export/Import.
 
-Implementierung von Modi für neurodivergente Lernende in der Nachhilfe-Testplattform. Dies umfasst einen "Direkt & Reizarm"-Modus mit sachlich-direkten mathematischen und sprachlichen Fragestellungen (ohne narrative/metaphorische Ausschmückung wie Äpfel-Kontexte), Reizreduktion (keine störenden Animationen, ruhige UI), Speicherung im Schülerprofil mit Schnellwahl vor Teststart und diskreter Kennzeichnung in Diagnostik-Reports.
-
-Working directory: c:\Users\beeck\git\repos\NachhilfeTest
+Working directory: c:/Users/beeck/git/repos/NachhilfeTest
 Integrity mode: development
 
 ## Requirements
 
-### R1. Datenmodell für Fragen und Profile
-- Unterstützung von `directText` (und optional `directStoryContext`) in Fragendefinitionen für sachliche, direkte Formulierungen bei Mathe- und Sprachaufgaben.
-- Erweiterung des Schülerprofils um persistente Barrierefreiheits-Einstellungen (`AccessibilitySettings`) mit Presets ("Standard", "Direkt & Reizarm") und Schaltern für `directQuestions` und `reducedSensory`.
+### R1. Data Export & Import (JSON File-based)
+- Provide export functionality that bundles all student profiles (roster) and session histories into a structured JSON file.
+- Provide import functionality that parses the JSON file, validates schema integrity, and merges or restores student profiles and test history without corrupting existing records.
+- Handle corrupted files, schema version mismatches, and invalid JSON gracefully with informative user feedback and zero crash states.
 
-### R2. UI-Anpassungen & Reizreduktion
-- Schnellwahltasten direkt vor Test- und Übungsbeginn ("Standard" vs. "Direkt & Reizarm").
-- Question-Renderer zeigt bei aktivem Direkt-Modus bevorzugt `directText` an und unterdrückt rein narrative Story-Zusätze.
-- Reizreduktions-Modus (`reducedSensory`): Deaktivierung von Bounces, überflüssigen Animationen und störenden visuellen Reizen.
+### R2. Remote Cloud Sync via GitHub Gist
+- Provide a synchronization modal/settings interface where users can configure a GitHub Personal Access Token (PAT) and/or a Gist ID.
+- Support **Push to Gist** (uploads current roster and test history to a private Gist) and **Pull from Gist** (fetches and merges remote roster and session history).
+- Securely store user-provided tokens in local client storage and include conflict-resolution strategies (e.g. merge by latest timestamp / ID matching).
 
-### R3. Diskrete Diagnostik & Auswertung
-- Unauffällige, dezente Erfassung im Diagnosebericht / Footer (z. B. unauffällige Kennzeichnung `[D/R]`), ohne auffällige Stigmatisierung für Dritte.
+### R3. UI Integration & Accessibility
+- Integrate sync and backup triggers into the Student Switcher Modal, Test Configurator, and/or Top Navigation bar.
+- Maintain full keyboard accessibility, focus management, and dark/reduced-sensory theme compliance.
+
+## Verification Resources
+- Existing Vitest test runner: `npm run test` (392 existing unit and integration tests).
+- Existing data schema modules: `src/types/student.ts`, `src/types/history.ts`, `src/utils/studentRoster.ts`, `src/utils/sessionHistory.ts`.
 
 ## Acceptance Criteria
 
-### Funktionalität & UI
-- [ ] Bei Auswahl des Modus "Direkt & Reizarm" werden Textaufgaben als reine Rechenaufgaben / direkte Fragen formuliert.
-- [ ] Schnellauswahl vor Teststart schaltet den Modus nahtlos um.
-- [ ] Reizreduktion deaktiviert ablenkende Animationen und Effekte.
-- [ ] Alle bestehenden und neuen Vitest-Tests laufen zu 100% grün (`npm run test`).
-- [ ] `npm run lint` bzw. Build läuft fehlerfrei durch.
+### Data Portability & Merge Logic
+- [ ] Exporting produces a valid JSON payload containing both `diagnostic_student_roster` and `diagnostic_session_history` records.
+- [ ] Importing valid JSON properly updates student rosters and session histories in storage.
+- [ ] Attempting to import non-JSON, empty, or malformed payloads fails gracefully with a non-fatal error message.
+- [ ] Merging remote and local profiles preserves existing students with identical IDs using `updatedAt` timestamps.
+
+### Gist Sync & Remote Communication
+- [ ] GitHub Gist API client supports creating, updating, and fetching private sync Gists via GitHub REST API.
+- [ ] Network errors (e.g. invalid token, rate limiting, offline mode) display helpful error notices without disrupting test sessions.
+
+### Automated Test Suite
+- [ ] New unit and integration tests are added for JSON export/import and GitHub Gist sync logic.
+- [ ] `npm run test` passes 100% with 0 failing test suites.
+- [ ] `npm run lint` passes without errors.

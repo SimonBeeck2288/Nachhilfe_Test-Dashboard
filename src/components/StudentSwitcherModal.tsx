@@ -20,7 +20,9 @@ import {
   Heart,
   Eye,
   Zap,
+  Cloud,
 } from 'lucide-react';
+import { SyncModal } from './SyncModal';
 
 export interface StudentSwitcherModalProps {
   isOpen: boolean;
@@ -47,6 +49,7 @@ export const StudentSwitcherModal: React.FC<StudentSwitcherModalProps> = ({
   const [roster, setRoster] = useState<StudentProfile[]>([]);
   const [mode, setMode] = useState<'list' | 'create'>('list');
   const [confirmTarget, setConfirmTarget] = useState<StudentProfile | 'guest' | null>(null);
+  const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
 
   // Form State
   const [editingStudentId, setEditingStudentId] = useState<string | null>(null);
@@ -340,15 +343,27 @@ export const StudentSwitcherModal: React.FC<StudentSwitcherModalProps> = ({
               <span style={{ fontSize: '0.85rem', color: 'var(--text-muted, #64748B)', fontWeight: 500 }}>
                 Wähle ein Profil aus oder erstelle ein neues:
               </span>
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={startCreateProfile}
-                style={{ fontSize: '0.85rem', padding: '0.4rem 0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
-              >
-                <UserPlus size={16} />
-                Neues Profil
-              </button>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={() => setIsSyncModalOpen(true)}
+                  style={{ fontSize: '0.85rem', padding: '0.4rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                  title="Profile und Testergebnisse synchronisieren oder als Backup sichern"
+                >
+                  <Cloud size={16} color="#4F46E5" />
+                  Sync & Backup
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={startCreateProfile}
+                  style={{ fontSize: '0.85rem', padding: '0.4rem 0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                >
+                  <UserPlus size={16} />
+                  Neues Profil
+                </button>
+              </div>
             </div>
 
             {/* Current Active Indicator Banner */}
@@ -1033,6 +1048,11 @@ export const StudentSwitcherModal: React.FC<StudentSwitcherModalProps> = ({
             </div>
           </form>
         )}
+        <SyncModal
+          isOpen={isSyncModalOpen}
+          onClose={() => setIsSyncModalOpen(false)}
+          onDataChanged={() => setRoster(getStudentRoster())}
+        />
       </div>
     </div>
   );

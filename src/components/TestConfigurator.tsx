@@ -5,8 +5,9 @@ import { getStudentRoster } from '../utils/studentRoster';
 import type { StudentProfile } from '../types/student';
 import type { CustomTestConfig } from '../types/config';
 import { defaultConfig } from '../types/config';
-import { Sliders, Play, RotateCcw, User, ArrowLeft, Check } from 'lucide-react';
+import { Sliders, Play, RotateCcw, User, ArrowLeft, Check, Cloud, RefreshCw } from 'lucide-react';
 import { AccessibilityModeSwitcher } from './AccessibilityModeSwitcher';
+import { SyncModal } from './SyncModal';
 
 const MATH_TOPICS = [
   'Addition',
@@ -61,6 +62,7 @@ export const TestConfigurator: React.FC<{ onCancel?: () => void }> = ({ onCancel
   const [roster, setRoster] = useState<StudentProfile[]>([]);
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(state.currentStudent?.id || null);
   const [guestName, setGuestName] = useState<string>(state.studentName || '');
+  const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
 
   // Config State
   const [subject, setSubject] = useState<CustomTestConfig['subject']>(state.customTestConfig?.subject || 'all');
@@ -199,10 +201,22 @@ export const TestConfigurator: React.FC<{ onCancel?: () => void }> = ({ onCancel
 
       {/* SECTION 1: Student Profile Selector */}
       <div style={{ padding: '1.25rem', backgroundColor: '#F8FAFC', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
-        <h3 style={{ fontSize: '1.05rem', color: 'var(--text-color)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <User size={20} color="var(--primary)" />
-          Schülerprofil für diesen Test
-        </h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+          <h3 style={{ fontSize: '1.05rem', color: 'var(--text-color)', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <User size={20} color="var(--primary)" />
+            Schülerprofil für diesen Test
+          </h3>
+          <button
+            type="button"
+            className="btn btn-outline"
+            onClick={() => setIsSyncModalOpen(true)}
+            style={{ fontSize: '0.8rem', padding: '0.35rem 0.65rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+            title="Profile & Testergebnisse synchronisieren oder sichern"
+          >
+            <Cloud size={15} color="#4F46E5" />
+            Sync & Backup
+          </button>
+        </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
           <div>
             <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.4rem' }}>
@@ -563,15 +577,26 @@ export const TestConfigurator: React.FC<{ onCancel?: () => void }> = ({ onCancel
 
       {/* Action Footer */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '2px solid var(--border)', paddingTop: '1.25rem', marginTop: '0.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-        <button className="btn btn-secondary" onClick={handleResetToDefault} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-          <RotateCcw size={16} /> Auf Standard zurücksetzen
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button className="btn btn-secondary" onClick={handleResetToDefault} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <RotateCcw size={16} /> Auf Standard zurücksetzen
+          </button>
+          <button className="btn btn-outline" onClick={() => setIsSyncModalOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <RefreshCw size={16} /> Sync
+          </button>
+        </div>
 
         <button className="btn btn-primary" onClick={handleStartCustomTest} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.5rem', fontSize: '1rem' }}>
           <Play size={18} />
           Konfigurierten Test jetzt starten
         </button>
       </div>
+
+      <SyncModal
+        isOpen={isSyncModalOpen}
+        onClose={() => setIsSyncModalOpen(false)}
+        onDataChanged={() => setRoster(getStudentRoster())}
+      />
     </div>
   );
 };
