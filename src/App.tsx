@@ -10,6 +10,7 @@ import Dashboard from './pages/Dashboard';
 import TestConfigurator from './components/TestConfigurator';
 import Layout from './components/Layout';
 import PracticeView from './components/PracticeView';
+import AbTestPage from './pages/AbTestPage';
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="configurator" element={<TestConfigurator />} />
             <Route path="practice" element={<PracticeView />} />
+            <Route path="ab-test" element={<AbTestPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>

@@ -7,6 +7,7 @@ import type { CustomTestConfig } from '../types/config';
 import type { AvatarConfig } from '../types/gamification';
 import { saveSessionRecord } from '../utils/sessionHistory';
 import { saveStudentProfile, updateStudentProfile } from '../utils/studentRoster';
+import { computeAbComparisonMetrics } from '../utils/evaluation';
 
 export type Subject = 'math' | 'english' | 'cognition' | 'warmup';
 
@@ -23,6 +24,7 @@ export interface AnswerRecord {
   questionText?: string;
   userAnswer?: string;
   correctAnswer?: string | string[];
+  modeVariant?: 'standard' | 'direct';
 }
 
 export interface TestSessionState {
@@ -584,6 +586,8 @@ export const TestSessionProvider: React.FC<{ children: ReactNode }> = ({ childre
       };
     }
 
+    const abComparisonMetrics = computeAbComparisonMetrics(state.answers);
+
     const record: TestSessionRecord = {
       sessionId: state.sessionId || `sess_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
       studentId: state.studentId || state.currentStudent?.id || 'guest',
@@ -596,6 +600,7 @@ export const TestSessionProvider: React.FC<{ children: ReactNode }> = ({ childre
       totalQuestions: state.answers.length,
       topicBreakdown,
       cognitionStats,
+      abComparisonMetrics: abComparisonMetrics || undefined,
       answers: state.answers,
       motivation: state.motivation,
       favoriteSubject: state.favoriteSubject,

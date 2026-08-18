@@ -16,6 +16,22 @@ export interface CognitionStatsRecord {
   avgReactionTime: number; // in ms
 }
 
+export interface AbTestVariantStats {
+  total: number;
+  correct: number;
+  accuracy: number; // 0.0 - 1.0
+  avgTime: number; // in seconds
+}
+
+export interface AbTestComparisonMetrics {
+  standard: AbTestVariantStats;
+  direct: AbTestVariantStats;
+  accuracyGainPercent: number; // percentage points difference: (direct.accuracy - standard.accuracy) * 100
+  speedupPercent: number; // ((standard.avgTime - direct.avgTime) / standard.avgTime) * 100
+  recommendation: 'recommend_direct' | 'recommend_standard' | 'neutral';
+  recommendationReason: string;
+}
+
 export interface TestSessionRecord {
   sessionId: string;
   studentId: string;
@@ -28,6 +44,7 @@ export interface TestSessionRecord {
   totalQuestions: number;
   topicBreakdown: Record<string, TopicBreakdownItem> | TopicBreakdownItem[];
   cognitionStats?: CognitionStatsRecord | null;
+  abComparisonMetrics?: AbTestComparisonMetrics | null;
   answers: AnswerRecord[];
   motivation?: number;
   favoriteSubject?: string;

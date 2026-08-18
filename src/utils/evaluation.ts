@@ -1,3 +1,6 @@
+import type { AnswerRecord } from '../context/TestSessionContext';
+import type { AbTestComparisonMetrics } from '../types/history';
+
 /**
  * Normalizes an English string by lowercasing, stripping punctuation,
  * and collapsing internal whitespace.
@@ -208,4 +211,82 @@ export function calculateSoftScore(
   const overtime = timeTakenSec - targetTimeSec;
   const penaltyRatio = Math.min(0.5, overtime * 0.02); // Maximum 50% decay (min 50 pts)
   return Math.round(basePoints * (1 - penaltyRatio));
+}
+
+/**
+ * Computes comparative A/B test analytics between Standard narrative questions
+ * and Direct & sensory-reduced questions.
+ */
+export function computeAbComparisonMetrics(answers: AnswerRecord[]): AbTestComparisonMetrics | null {
+  if (!answers || answers.length === 0) return null;
+
+  const standardAnswers = answers.filter((a) => a.modeVariant === 'standard');
+  const directAnswers = answers.filter((a) => a.modeVariant === 'direct');
+
+  if (standardAnswers.length === 0 || directAnswers.length === 0) {
+    return null;
+  }
+
+  const standardCorrect = standardAnswers.filter((a) => a.isCorrect).length;
+  const standardTotal = standardAnswers.length;
+  const standardAcc = standardTotal > 0 ? standardCorrect / standardTotal : 0;
+  const standardTotalTime = standardAnswers.reduce(
+    (acc, curr) => acc + (typeof curr.timeTaken === 'number' && Number.isFinite(curr.timeTaken) && curr.timeTaken >= 0 ? curr.timeTaken : 0),
+    0
+  );
+  const standardAvgTime = standardTotal > 0 ? standardTotalTime / standardTotal : 0;
+
+  const directCorrect = directAnswers.filter((a) => a.isCorrect).length;
+  const directTotal = directAnswers.length;
+  const directAcc = directTotal > 0 ? directCorrect / directTotal : 0;
+  const directTotalTime = directAnswers.reduce(
+    (acc, curr) => acc + (typeof curr.timeTaken === 'number' && Number.isFinite(curr.timeTaken) && curr.timeTaken >= 0 ? curr.timeTaken : 0),
+    0
+  );
+  const directAvgTime = directTotal > 0 ? directTotalTime / directTotal : 0;
+
+  // Accuracy gain in percentage points (e.g. +25.0%)
+  const accuracyGainPercent = Math.round((directAcc - standardAcc) * 1000) / 10;
+
+  // Speedup percent: ((standardAvgTime - directAvgTime) / standardAvgTime) * 100
+  let speedupPercent = 0;
+  if (standardAvgTime > 0) {
+    speedupPercent = Math.round(((standardAvgTime - directAvgTime) / standardAvgTime) * 1000) / 10;
+  }
+
+  let recommendation: 'recommend_direct' | 'recommend_standard' | 'neutral' = 'neutral';
+  let recommendationReason = 'Beide Modi führten zu vergleichbaren Ergebnissen bei Genauigkeit und Bearbeitungszeit.';
+
+  if (accuracyGainPercent >= 10 || (speedupPercent >= 15 && accuracyGainPercent >= -5)) {
+    recommendation = 'recommend_direct';
+    if (accuracyGainPercent >= 10 && speedupPercent >= 15) {
+      recommendationReason = `Deutliche Steigerung der Trefferquote (+${accuracyGainPercent}%) und ${speedupPercent}% schnellere Bearbeitung im direkt-reizarmen Modus.`;
+    } else if (accuracyGainPercent >= 10) {
+      recommendationReason = `Signifikant höhere Genauigkeit (+${accuracyGainPercent}%) bei sachlich-direkten Aufgabenstellungen.`;
+    } else {
+      recommendationReason = `Messbarer Geschwindigkeitsvorteil (${speedupPercent}% schneller) bei stabiler Genauigkeit im direkt-reizarmen Modus.`;
+    }
+  } else if (accuracyGainPercent <= -10 || (speedupPercent <= -20 && accuracyGainPercent <= 0)) {
+    recommendation = 'recommend_standard';
+    recommendationReason = 'Der Standard-Modus mit narrativer Einbettung bot bessere Verständlichkeit und Trefferquote.';
+  }
+
+  return {
+    standard: {
+      total: standardTotal,
+      correct: standardCorrect,
+      accuracy: standardAcc,
+      avgTime: standardAvgTime,
+    },
+    direct: {
+      total: directTotal,
+      correct: directCorrect,
+      accuracy: directAcc,
+      avgTime: directAvgTime,
+    },
+    accuracyGainPercent,
+    speedupPercent,
+    recommendation,
+    recommendationReason,
+  };
 }

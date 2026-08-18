@@ -5,9 +5,21 @@ import { getStudentRoster } from '../utils/studentRoster';
 import type { StudentProfile } from '../types/student';
 import type { CustomTestConfig } from '../types/config';
 import { defaultConfig } from '../types/config';
-import { Sliders, Play, RotateCcw, User, ArrowLeft, Check, Cloud, RefreshCw } from 'lucide-react';
+import { Sliders, Play, RotateCcw, User, ArrowLeft, Check, Cloud, RefreshCw, Zap } from 'lucide-react';
 import { AccessibilityModeSwitcher } from './AccessibilityModeSwitcher';
 import { SyncModal } from './SyncModal';
+
+function mapStudentGradeToLevel(gradeLevel?: number | string): number {
+  if (!gradeLevel) return 1;
+  const g = typeof gradeLevel === 'string' ? parseInt(gradeLevel, 10) : gradeLevel;
+  if (isNaN(g) || g <= 2) return 1;
+  if (g <= 4) return 2;
+  if (g <= 6) return 3;
+  if (g <= 8) return 4;
+  if (g <= 10) return 5;
+  if (g <= 12) return 6;
+  return 7;
+}
 
 const MATH_TOPICS = [
   'Addition',
@@ -65,6 +77,7 @@ export const TestConfigurator: React.FC<{ onCancel?: () => void }> = ({ onCancel
   const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
 
   // Config State
+  const [isAbModeTest, setIsAbModeTest] = useState<boolean>(state.customTestConfig?.isAbModeTest || false);
   const [subject, setSubject] = useState<CustomTestConfig['subject']>(state.customTestConfig?.subject || 'all');
   const [startingLevel, setStartingLevel] = useState<number>(state.customTestConfig?.startingLevel || 1);
   const [maxDurationMinutes, setMaxDurationMinutes] = useState<number>(
@@ -84,6 +97,17 @@ export const TestConfigurator: React.FC<{ onCancel?: () => void }> = ({ onCancel
       setSelectedStudentId((prev) => prev || list[0].id);
     }
   }, []);
+
+  const handleApplyAbPreset = () => {
+    setIsAbModeTest(true);
+    setSubject('math');
+    setMaxDurationMinutes(5);
+
+    const activeStudent = roster.find((s) => s.id === selectedStudentId) || state.currentStudent;
+    if (activeStudent?.gradeLevel) {
+      setStartingLevel(mapStudentGradeToLevel(activeStudent.gradeLevel));
+    }
+  };
 
   const handleTopicCycle = (topic: string) => {
     setTopicModes((prev) => {
@@ -121,6 +145,7 @@ export const TestConfigurator: React.FC<{ onCancel?: () => void }> = ({ onCancel
   };
 
   const handleResetToDefault = () => {
+    setIsAbModeTest(false);
     setSubject(defaultConfig.subject);
     setStartingLevel(defaultConfig.startingLevel);
     setMaxDurationMinutes(defaultConfig.maxDurationMinutes);
@@ -134,19 +159,23 @@ export const TestConfigurator: React.FC<{ onCancel?: () => void }> = ({ onCancel
       .filter(([_, mode]) => mode !== 'off')
       .map(([t]) => t);
 
+    const finalDuration = isAbModeTest
+      ? ([5, 7.5, 10].includes(maxDurationMinutes) ? maxDurationMinutes : 5)
+      : maxDurationMinutes;
+
     const newConfig: CustomTestConfig = {
       subject,
       startingLevel,
-      maxDurationMinutes,
+      maxDurationMinutes: finalDuration,
       topics: activeTopics,
       topicModes,
       questionTypes,
+      isAbModeTest,
     };
 
     setCustomTestConfig(newConfig);
     setMathLevel(startingLevel);
     setEnglishLevel(startingLevel);
-
 
     clearSession();
 
@@ -167,15 +196,24 @@ export const TestConfigurator: React.FC<{ onCancel?: () => void }> = ({ onCancel
       startSession('Gast-Schüler');
     }
 
-    // Navigation based on subject configuration
-    if (subject === 'math') {
-      navigate('/math');
-    } else if (subject === 'english') {
-      navigate('/english');
-    } else if (subject === 'cognition') {
-      navigate('/cognition');
+    // Navigation based on subject configuration and A/B mode
+    if (isAbModeTest) {
+      if (subject === 'english') {
+        navigate('/english');
+      } else {
+        // Math default or combined (all) starts at math module
+        navigate('/math');
+      }
     } else {
-      navigate('/warmup');
+      if (subject === 'math') {
+        navigate('/math');
+      } else if (subject === 'english') {
+        navigate('/english');
+      } else if (subject === 'cognition') {
+        navigate('/cognition');
+      } else {
+        navigate('/warmup');
+      }
     }
   };
 
@@ -197,6 +235,53 @@ export const TestConfigurator: React.FC<{ onCancel?: () => void }> = ({ onCancel
             <ArrowLeft size={18} /> Zurück
           </button>
         )}
+      </div>
+
+      {/* A/B DIAGNOSTIC PRESET BANNER */}
+      <div
+        style={{
+          padding: '1.25rem',
+          borderRadius: 'var(--radius-md)',
+          border: isAbModeTest ? '2px solid #7C3AED' : '1px solid #E2E8F0',
+          backgroundColor: isAbModeTest ? '#F5F3FF' : '#FAFAFA',
+          boxShadow: isAbModeTest ? '0 4px 12px rgba(124, 58, 237, 0.1)' : 'none',
+          transition: 'all 0.2s ease',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 800, fontSize: '1.1rem', color: isAbModeTest ? '#6D28D9' : '#1E293B' }}>
+              <Zap size={22} color={isAbModeTest ? '#7C3AED' : '#6366F1'} />
+              <span>⚡ Aufgaben-Check: Textaufgaben vs. Direkte Aufgaben</span>
+            </div>
+            <p style={{ margin: '0.35rem 0 0', fontSize: '0.85rem', color: isAbModeTest ? '#5B21B6' : '#64748B' }}>
+              5–10 Min. Vergleichstest: Vergleicht Verständnis & Lösungsgeschwindigkeit zwischen ausführlichen Textaufgaben und kurzen, direkten Aufgaben.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={isAbModeTest ? handleResetToDefault : handleApplyAbPreset}
+            style={{
+              padding: '0.6rem 1.2rem',
+              borderRadius: '8px',
+              border: 'none',
+              backgroundColor: isAbModeTest ? '#7C3AED' : '#4F46E5',
+              color: 'white',
+              fontWeight: 700,
+              fontSize: '0.9rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.45rem',
+              boxShadow: '0 2px 6px rgba(79, 70, 229, 0.25)',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            {isAbModeTest ? <Check size={16} /> : <Zap size={16} />}
+            {isAbModeTest ? 'A/B Diagnose Aktiviert ✓' : 'Preset Laden: ⚡ A/B Diagnose'}
+          </button>
+        </div>
       </div>
 
       {/* SECTION 1: Student Profile Selector */}
@@ -228,6 +313,12 @@ export const TestConfigurator: React.FC<{ onCancel?: () => void }> = ({ onCancel
               onChange={(e) => {
                 const val = e.target.value;
                 setSelectedStudentId(val ? val : null);
+                if (isAbModeTest && val) {
+                  const s = roster.find((r) => r.id === val);
+                  if (s?.gradeLevel) {
+                    setStartingLevel(mapStudentGradeToLevel(s.gradeLevel));
+                  }
+                }
               }}
             >
               <option value="">-- Keines (Gast) --</option>
@@ -264,15 +355,22 @@ export const TestConfigurator: React.FC<{ onCancel?: () => void }> = ({ onCancel
       {/* SECTION 2: Subject Selection */}
       <div>
         <label style={{ display: 'block', fontWeight: 700, fontSize: '1rem', color: 'var(--text-color)', marginBottom: '0.75rem' }}>
-          1. Test-Umfang / Fach-Auswahl
+          1. Test-Umfang / Fach-Auswahl {isAbModeTest && <span style={{ color: '#7C3AED', fontSize: '0.85rem', fontWeight: 600 }}>(A/B Blindtest)</span>}
         </label>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem' }}>
-          {[
-            { id: 'all', label: 'Vollständiger Test (Alle Module)', desc: 'Warm-up + Kognition + Mathe + Englisch' },
-            { id: 'math', label: 'Nur Mathematik', desc: 'Gezielte Diagnose in Mathe' },
-            { id: 'english', label: 'Nur Englisch', desc: 'Gezielte Diagnose in Englisch' },
-            { id: 'cognition', label: 'Nur Kognition (Stroop)', desc: 'Reaktionszeit & Konzentration' },
-          ].map((item) => {
+          {(isAbModeTest
+            ? [
+                { id: 'math', label: 'Mathematik (Standard)', desc: 'A/B Vergleich in Mathe (Formeln vs. Sachaufgaben)' },
+                { id: 'english', label: 'Englisch', desc: 'A/B Vergleich in Englisch (Direkt vs. Lesetexte)' },
+                { id: 'all', label: 'Kombiniert (Mathe & Englisch)', desc: 'Umfassender A/B Vergleich beider Fächer' },
+              ]
+            : [
+                { id: 'all', label: 'Vollständiger Test (Alle Module)', desc: 'Warm-up + Kognition + Mathe + Englisch' },
+                { id: 'math', label: 'Nur Mathematik', desc: 'Gezielte Diagnose in Mathe' },
+                { id: 'english', label: 'Nur Englisch', desc: 'Gezielte Diagnose in Englisch' },
+                { id: 'cognition', label: 'Nur Kognition (Stroop)', desc: 'Reaktionszeit & Konzentration' },
+              ]
+          ).map((item) => {
             const isSelected = subject === item.id;
             return (
               <div
@@ -281,13 +379,13 @@ export const TestConfigurator: React.FC<{ onCancel?: () => void }> = ({ onCancel
                 style={{
                   padding: '1rem',
                   borderRadius: 'var(--radius-md)',
-                  border: `2px solid ${isSelected ? 'var(--primary)' : 'var(--border)'}`,
-                  backgroundColor: isSelected ? '#EFF6FF' : 'white',
+                  border: `2px solid ${isSelected ? (isAbModeTest ? '#7C3AED' : 'var(--primary)') : 'var(--border)'}`,
+                  backgroundColor: isSelected ? (isAbModeTest ? '#F5F3FF' : '#EFF6FF') : 'white',
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
                 }}
               >
-                <div style={{ fontWeight: 700, fontSize: '0.95rem', color: isSelected ? 'var(--primary)' : 'var(--text-color)', marginBottom: '0.25rem' }}>
+                <div style={{ fontWeight: 700, fontSize: '0.95rem', color: isSelected ? (isAbModeTest ? '#6D28D9' : 'var(--primary)') : 'var(--text-color)', marginBottom: '0.25rem' }}>
                   {item.label}
                 </div>
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{item.desc}</div>
@@ -302,6 +400,11 @@ export const TestConfigurator: React.FC<{ onCancel?: () => void }> = ({ onCancel
         <div>
           <label style={{ display: 'block', fontWeight: 700, fontSize: '1rem', color: 'var(--text-color)', marginBottom: '0.5rem' }}>
             2. Start-Schwierigkeitsstufe: Level {startingLevel}
+            {isAbModeTest && (
+              <span style={{ display: 'block', fontSize: '0.78rem', color: '#6D28D9', fontWeight: 500 }}>
+                ✓ Adaptiver Start angepasst an Klassenstufe
+              </span>
+            )}
           </label>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <input
@@ -311,9 +414,9 @@ export const TestConfigurator: React.FC<{ onCancel?: () => void }> = ({ onCancel
               step="1"
               value={startingLevel}
               onChange={(e) => setStartingLevel(Number(e.target.value))}
-              style={{ flex: 1, accentColor: 'var(--primary)', cursor: 'pointer' }}
+              style={{ flex: 1, accentColor: isAbModeTest ? '#7C3AED' : 'var(--primary)', cursor: 'pointer' }}
             />
-            <span style={{ fontWeight: 800, fontSize: '1.2rem', color: 'var(--primary)', minWidth: '40px', textAlign: 'center' }}>
+            <span style={{ fontWeight: 800, fontSize: '1.2rem', color: isAbModeTest ? '#7C3AED' : 'var(--primary)', minWidth: '40px', textAlign: 'center' }}>
               Lvl {startingLevel}
             </span>
           </div>
@@ -326,17 +429,17 @@ export const TestConfigurator: React.FC<{ onCancel?: () => void }> = ({ onCancel
 
         <div>
           <label style={{ display: 'block', fontWeight: 700, fontSize: '1rem', color: 'var(--text-color)', marginBottom: '0.5rem' }}>
-            3. Max. Modul-Dauer (Minuten)
+            3. Max. Test-Dauer (5–10 Min.)
           </label>
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             {[
-              { val: 3, label: '3 Min' },
-              { val: 5, label: '5 Min (Standard)' },
+              { val: 5, label: '5 Min' },
+              { val: 7.5, label: '7.5 Min' },
               { val: 10, label: '10 Min' },
-              { val: 15, label: '15 Min' },
-              { val: 0, label: 'Ohne Limit' },
+              ...(isAbModeTest ? [] : [{ val: 15, label: '15 Min' }, { val: 0, label: 'Ohne Limit' }]),
             ].map((opt) => {
               const isSel = maxDurationMinutes === opt.val;
+              const primaryColor = isAbModeTest ? '#7C3AED' : 'var(--primary)';
               return (
                 <button
                   key={opt.val}
@@ -345,8 +448,8 @@ export const TestConfigurator: React.FC<{ onCancel?: () => void }> = ({ onCancel
                   style={{
                     padding: '0.5rem 0.85rem',
                     borderRadius: 'var(--radius-sm)',
-                    border: `1px solid ${isSel ? 'var(--primary)' : 'var(--border)'}`,
-                    backgroundColor: isSel ? 'var(--primary)' : 'white',
+                    border: `1px solid ${isSel ? primaryColor : 'var(--border)'}`,
+                    backgroundColor: isSel ? primaryColor : 'white',
                     color: isSel ? 'white' : 'var(--text-color)',
                     fontWeight: 600,
                     fontSize: '0.85rem',

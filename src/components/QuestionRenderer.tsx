@@ -19,6 +19,7 @@ interface QuestionRendererProps {
   onStepBack?: () => void;
   canStepBack?: boolean;
   initialAnswer?: string;
+  modeVariant?: 'standard' | 'direct';
 }
 
 export const QuestionRenderer: React.FC<QuestionRendererProps> = ({
@@ -29,6 +30,7 @@ export const QuestionRenderer: React.FC<QuestionRendererProps> = ({
   onStepBack,
   canStepBack,
   initialAnswer,
+  modeVariant,
 }) => {
   const { state, toggleBookmarkQuestion } = useTestSession();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -46,10 +48,13 @@ export const QuestionRenderer: React.FC<QuestionRendererProps> = ({
     return [];
   }, [question.type, question.options]);
 
-  const isDirectMode = Boolean(state.accessibilitySettings?.directQuestions);
+  const isAbTest = Boolean(state.customTestConfig?.isAbModeTest);
+  const isDirectMode = modeVariant !== undefined
+    ? modeVariant === 'direct'
+    : Boolean(state.accessibilitySettings?.directQuestions);
   const isReducedSensory = Boolean(state.accessibilitySettings?.reducedSensory);
   const activeQuestionText = isDirectMode && question.directText ? question.directText : question.text;
-  const effectiveStoryContext = isDirectMode ? question.directStoryContext : (question.storyContext || question.directStoryContext);
+  const effectiveStoryContext = isDirectMode ? undefined : question.storyContext;
 
   // Reset input and stop audio when question or mode changes, or on unmount
   useEffect(() => {
@@ -62,7 +67,7 @@ export const QuestionRenderer: React.FC<QuestionRendererProps> = ({
     return () => {
       stopSpeech();
     };
-  }, [question.id, initialAnswer, isDirectMode, question.type]);
+  }, [question.id, initialAnswer, isDirectMode, modeVariant, question.type]);
 
 
   const toggleTTS = () => {
@@ -148,7 +153,7 @@ export const QuestionRenderer: React.FC<QuestionRendererProps> = ({
           )}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          {isDirectMode && (
+          {!isAbTest && isDirectMode && (
             <span
               style={{
                 fontSize: '0.75rem',

@@ -1,7 +1,11 @@
-# Original User Request
+## 2026-08-17T18:52:01Z
+<USER_REQUEST>
+You are the SWE Light Orchestrator (teamwork_preview_swe).
 
-## Initial Request — 2026-08-17T18:52:01Z
+Your working directory is: `/Users/Simon.Beeck/projects/Nachhilfe_Test-Dashboard/.agents/swe_2`
+The original user request is stored in `/Users/Simon.Beeck/projects/Nachhilfe_Test-Dashboard/.agents/ORIGINAL_REQUEST.md`.
 
+## Mission & Requirements
 Implement a 5–10 minute Neurodiversity A/B Comparison Diagnostic Test mode in the Nachhilfe Test Dashboard that compares student comprehension and solving speed between standard narrative questions and direct & sensory-reduced ("Direkt & Reizarm") questions.
 
 ### R1. A/B Diagnostic Test Mode Configuration & Preset
@@ -30,3 +34,6 @@ Add an A/B Comparison section to `DiagnosticReportPrint.tsx` displaying the comp
 - 100% of all test suites (`npm run test`) must pass cleanly with zero regressions.
 - Linter check (`npm run lint`) must pass with zero errors.
 - New unit and integration tests added in `src/tests/ab_mode_test.test.ts` verifying mode alternation, answer tagging with `modeVariant`, calculation of comparative accuracy/speed metrics, and auto-recommendation conditions.
+
+Please maintain your `progress.md` and `BRIEFING.md` regularly in your working directory. Report completion back with full summary when finished.
+</USER_REQUEST>

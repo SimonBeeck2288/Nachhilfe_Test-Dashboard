@@ -112,6 +112,11 @@ const ModuleEnglish: React.FC = () => {
     }
   }, [nextQuestion, currentQuestion, resetTimer, askedIds.size]);
 
+  const isAbMode = Boolean(state.customTestConfig?.isAbModeTest);
+  const currentModeVariant: 'standard' | 'direct' = isAbMode
+    ? (questionsAsked % 2 === 0 ? 'standard' : 'direct')
+    : (state.accessibilitySettings?.directQuestions ? 'direct' : 'standard');
+
   const handleAnswerSubmit = (answer: string) => {
     if (!currentQuestion) return;
 
@@ -131,7 +136,9 @@ const ModuleEnglish: React.FC = () => {
     const isCorrect = evaluateEnglishAnswer(answer, currentQuestion.correctAnswer);
     const pointsEarned = calculateSoftScore(isCorrect, elapsedTime, targetTime);
 
-    const isDirectMode = Boolean(state.accessibilitySettings?.directQuestions);
+    const isDirectMode = isAbMode
+      ? currentModeVariant === 'direct'
+      : Boolean(state.accessibilitySettings?.directQuestions);
     const activeQuestionText = (isDirectMode && currentQuestion.directText) ? currentQuestion.directText : currentQuestion.text;
 
     recordAnswer({
@@ -146,6 +153,7 @@ const ModuleEnglish: React.FC = () => {
       questionText: activeQuestionText,
       userAnswer: answer,
       correctAnswer: currentQuestion.correctAnswer,
+      modeVariant: isAbMode ? currentModeVariant : (state.accessibilitySettings?.directQuestions ? 'direct' : 'standard'),
     });
 
     setAskedIds((prev) => new Set(prev).add(currentQuestion.id));
@@ -338,8 +346,23 @@ const ModuleEnglish: React.FC = () => {
           </div>
         </div>
 
-        <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-          Frage {questionsAsked + 1} • Schwierigkeit: Level {currentLevel}
+        <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <span>Frage {questionsAsked + 1} • Schwierigkeit: Level {currentLevel}</span>
+          {isAbMode && (
+            <span
+              style={{
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                padding: '0.15rem 0.5rem',
+                borderRadius: '6px',
+                backgroundColor: currentModeVariant === 'direct' ? '#DCFCE7' : '#EFF6FF',
+                color: currentModeVariant === 'direct' ? '#15803D' : '#1D4ED8',
+                border: `1px solid ${currentModeVariant === 'direct' ? '#86EFAC' : '#BFDBFE'}`,
+              }}
+            >
+              ⚡ A/B-Test ({currentModeVariant === 'direct' ? 'Direkt & Reizarm' : 'Standard'})
+            </span>
+          )}
         </div>
       </div>
 
@@ -359,6 +382,7 @@ const ModuleEnglish: React.FC = () => {
         onStepBack={handleStepBack}
         canStepBack={historyStack.length > 0}
         initialAnswer={historyStack[historyStack.length - 1]?.question.id === currentQuestion.id ? historyStack[historyStack.length - 1]?.userAnswer : ''}
+        modeVariant={isAbMode ? currentModeVariant : undefined}
       />
     </div>
   );

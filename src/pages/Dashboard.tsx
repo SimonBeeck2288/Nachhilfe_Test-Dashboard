@@ -21,21 +21,25 @@ import {
   Palette,
   Award,
   Bookmark,
+  Zap,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getSessionHistory, deleteSessionRecord } from '../utils/sessionHistory';
-import { getStudentRoster } from '../utils/studentRoster';
+import { getStudentRoster, updateStudentProfile } from '../utils/studentRoster';
 import type { TestSessionRecord } from '../types/history';
 import type { StudentProfile } from '../types/student';
+import { DIRECT_REDUCED_SENSORY_SETTINGS } from '../types/student';
 import ProgressionChart from '../components/ProgressionChart';
 import TopicAccuracyChart from '../components/TopicAccuracyChart';
 import CognitionTrendChart from '../components/CognitionTrendChart';
 import DiagnosticReportPrint from '../components/DiagnosticReportPrint';
+import { AbTestComparisonCard } from '../components/AbTestComparisonCard';
 import { StudentAvatar } from '../components/StudentAvatar';
 import { AvatarCustomizerModal } from '../components/AvatarCustomizerModal';
 import { AchievementBadgeGrid } from '../components/AchievementBadgeGrid';
 import { AiPromptModal } from '../components/AiPromptModal';
 import type { AiPromptContext, PromptMode } from '../utils/aiPromptGenerator';
+import { computeAbComparisonMetrics } from '../utils/evaluation';
 
 interface TopicItem {
   topic: string;
@@ -295,7 +299,13 @@ const TopicAccordionList: React.FC<{
 };
 
 const Dashboard: React.FC = () => {
-  const { state, clearSession, saveSessionToHistory } = useTestSession();
+  const {
+    state,
+    clearSession,
+    saveSessionToHistory,
+    saveCurrentStudentProfile,
+    setAccessibilityPreset,
+  } = useTestSession();
   const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState<'current' | 'history' | 'analytics'>('current');
@@ -455,6 +465,32 @@ const Dashboard: React.FC = () => {
     }
   }
 
+  const currentAbMetrics = computeAbComparisonMetrics(state.answers);
+  const isDirectModeActive = Boolean(state.accessibilitySettings?.directQuestions && state.accessibilitySettings?.reducedSensory);
+
+  const handleActivateDirectModeForStudent = (targetStudentId?: string, _targetStudentName?: string) => {
+    const studentId = targetStudentId || state.studentId || state.currentStudent?.id;
+    if (studentId && studentId !== 'guest') {
+      updateStudentProfile(studentId, {
+        accessibilitySettings: { ...DIRECT_REDUCED_SENSORY_SETTINGS },
+      });
+      loadHistory();
+      setRoster(getStudentRoster());
+      setReviewingSession((prev) =>
+        prev && (prev.studentId === studentId || !targetStudentId)
+          ? { ...prev, accessibilitySettings: { ...DIRECT_REDUCED_SENSORY_SETTINGS } }
+          : prev
+      );
+    }
+    // Only update current session state if it targets the active student or is called from current tab
+    if (!targetStudentId || targetStudentId === state.studentId || targetStudentId === state.currentStudent?.id) {
+      saveCurrentStudentProfile({
+        accessibilitySettings: { ...DIRECT_REDUCED_SENSORY_SETTINGS },
+      });
+      setAccessibilityPreset('direct_reduced_sensory');
+    }
+  };
+
   const handleRestart = () => {
     if (window.confirm('Möchtest du wirklich einen neuen Test starten? Das aktuelle Schülerprofil bleibt erhalten.')) {
       clearSession();
@@ -534,6 +570,17 @@ const Dashboard: React.FC = () => {
             />
           ) : (
             <>
+              {/* A/B TEST COMPARISON CARD (PROMINENT TOP PLACEMENT FOR A/B TESTS) */}
+              {currentAbMetrics && (
+                <AbTestComparisonCard
+                  metrics={currentAbMetrics}
+                  studentName={state.studentName || state.currentStudent?.name || 'Schüler/in'}
+                  studentId={state.studentId || state.currentStudent?.id}
+                  onActivateDirectMode={() => handleActivateDirectModeForStudent()}
+                  isAlreadyActive={isDirectModeActive}
+                />
+              )}
+
               {/* STUDENT AVATAR & GAMIFICATION PROFILE BAR */}
               <div
                 style={{
@@ -602,6 +649,22 @@ const Dashboard: React.FC = () => {
                 </div>
 
                 <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <button
+                    className="btn"
+                    onClick={() => navigate('/ab-test')}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      backgroundColor: '#EDE9FE',
+                      color: '#6D28D9',
+                      fontWeight: 700,
+                      border: '1px solid #DDD6FE',
+                    }}
+                  >
+                    <Zap size={18} color="#7C3AED" />
+                    ⚡ Aufgaben-Check
+                  </button>
                   <button
                     className="btn btn-secondary"
                     onClick={() => setIsAvatarModalOpen(true)}
@@ -1048,6 +1111,26 @@ const Dashboard: React.FC = () => {
                 </div>
               )}
             </div>
+
+            {/* A/B Test Comparison Card for Reviewed Session */}
+            {(() => {
+              const reviewAbMetrics = reviewingSession.abComparisonMetrics || computeAbComparisonMetrics(reviewingSession.answers);
+              if (!reviewAbMetrics) return null;
+              const isReviewActive = Boolean(
+                reviewingSession.accessibilitySettings?.directQuestions && reviewingSession.accessibilitySettings?.reducedSensory
+              );
+              return (
+                <AbTestComparisonCard
+                  metrics={reviewAbMetrics}
+                  studentName={reviewingSession.studentName}
+                  studentId={reviewingSession.studentId}
+                  onActivateDirectMode={() =>
+                    handleActivateDirectModeForStudent(reviewingSession.studentId, reviewingSession.studentName)
+                  }
+                  isAlreadyActive={isReviewActive}
+                />
+              );
+            })()}
 
             {/* Answer Drilldown List */}
             <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', color: 'var(--text-color)' }}>

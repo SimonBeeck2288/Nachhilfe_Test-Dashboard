@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Brain, LayoutDashboard, UserCheck, Users, Wand2 } from 'lucide-react';
+import { Brain, LayoutDashboard, UserCheck, Users, Wand2, Zap } from 'lucide-react';
 import { useTestSession } from '../context/TestSessionContext';
 import { StudentSwitcherModal } from './StudentSwitcherModal';
 
@@ -86,6 +86,26 @@ const Layout: React.FC = () => {
             <Link to="/practice" className="btn btn-secondary" style={{ padding: '0.5rem 1rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
               <Wand2 size={18} />
               Übungs-Generator
+            </Link>
+          )}
+
+          {location.pathname !== '/ab-test' && (
+            <Link
+              to="/ab-test"
+              className="btn"
+              style={{
+                padding: '0.5rem 0.9rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                backgroundColor: '#EDE9FE',
+                color: '#6D28D9',
+                border: '1px solid #DDD6FE',
+                fontWeight: 700,
+              }}
+            >
+              <Zap size={18} color="#7C3AED" />
+              Aufgaben-Check
             </Link>
           )}
 

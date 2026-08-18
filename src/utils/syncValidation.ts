@@ -16,6 +16,7 @@ import type {
   AnswerRecord,
   AccessibilitySettings,
   AccessibilityPreset,
+  AbTestComparisonMetrics,
 } from '../types/sync';
 import { SYNC_SCHEMA_VERSION } from '../types/sync';
 
@@ -492,6 +493,7 @@ export function validateAnswerRecord(
   if (typeof raw.questionText === 'string') answer.questionText = raw.questionText.slice(0, 2048);
   if (typeof raw.userAnswer === 'string') answer.userAnswer = raw.userAnswer.slice(0, 1024);
   if (typeof raw.correctAnswer === 'string' || Array.isArray(raw.correctAnswer)) answer.correctAnswer = raw.correctAnswer as string | string[];
+  if (raw.modeVariant === 'standard' || raw.modeVariant === 'direct') answer.modeVariant = raw.modeVariant;
 
   return { valid: true, errors: [], answer };
 }
@@ -619,6 +621,35 @@ export function validateTestSessionRecord(
     accessibilitySettings = accResult.settings;
   }
 
+  let abComparisonMetrics: AbTestComparisonMetrics | null | undefined = undefined;
+  if (isRecord(raw.abComparisonMetrics)) {
+    const rawAb = raw.abComparisonMetrics as Record<string, any>;
+    if (isRecord(rawAb.standard) && isRecord(rawAb.direct)) {
+      abComparisonMetrics = {
+        standard: {
+          total: typeof rawAb.standard.total === 'number' && Number.isFinite(rawAb.standard.total) ? Math.max(0, rawAb.standard.total) : 0,
+          correct: typeof rawAb.standard.correct === 'number' && Number.isFinite(rawAb.standard.correct) ? Math.max(0, rawAb.standard.correct) : 0,
+          accuracy: typeof rawAb.standard.accuracy === 'number' && Number.isFinite(rawAb.standard.accuracy) ? Math.max(0, Math.min(1, rawAb.standard.accuracy)) : 0,
+          avgTime: typeof rawAb.standard.avgTime === 'number' && Number.isFinite(rawAb.standard.avgTime) ? Math.max(0, rawAb.standard.avgTime) : 0,
+        },
+        direct: {
+          total: typeof rawAb.direct.total === 'number' && Number.isFinite(rawAb.direct.total) ? Math.max(0, rawAb.direct.total) : 0,
+          correct: typeof rawAb.direct.correct === 'number' && Number.isFinite(rawAb.direct.correct) ? Math.max(0, rawAb.direct.correct) : 0,
+          accuracy: typeof rawAb.direct.accuracy === 'number' && Number.isFinite(rawAb.direct.accuracy) ? Math.max(0, Math.min(1, rawAb.direct.accuracy)) : 0,
+          avgTime: typeof rawAb.direct.avgTime === 'number' && Number.isFinite(rawAb.direct.avgTime) ? Math.max(0, rawAb.direct.avgTime) : 0,
+        },
+        accuracyGainPercent: typeof rawAb.accuracyGainPercent === 'number' && Number.isFinite(rawAb.accuracyGainPercent) ? rawAb.accuracyGainPercent : 0,
+        speedupPercent: typeof rawAb.speedupPercent === 'number' && Number.isFinite(rawAb.speedupPercent) ? rawAb.speedupPercent : 0,
+        recommendation: isValidEnum(rawAb.recommendation, ['recommend_direct', 'recommend_standard', 'neutral'] as const)
+          ? rawAb.recommendation
+          : 'neutral',
+        recommendationReason: typeof rawAb.recommendationReason === 'string' ? rawAb.recommendationReason.slice(0, 1024) : '',
+      };
+    }
+  } else if (raw.abComparisonMetrics === null) {
+    abComparisonMetrics = null;
+  }
+
   if (errors.length > 0) {
     return { valid: false, errors, warnings };
   }
@@ -635,6 +666,7 @@ export function validateTestSessionRecord(
     totalQuestions,
     topicBreakdown,
     cognitionStats,
+    abComparisonMetrics,
     answers,
     motivation,
     favoriteSubject,

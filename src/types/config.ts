@@ -7,6 +7,7 @@ export interface CustomTestConfig {
   topics: string[];
   topicModes?: Record<string, TopicMode>;
   questionTypes: ('multiple-choice' | 'input')[];
+  isAbModeTest?: boolean;
 }
 
 export const defaultConfig: CustomTestConfig = {
@@ -16,5 +17,6 @@ export const defaultConfig: CustomTestConfig = {
   topics: [],
   topicModes: {},
   questionTypes: ['multiple-choice', 'input'],
+  isAbModeTest: false,
 };
 

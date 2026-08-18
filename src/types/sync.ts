@@ -1,5 +1,5 @@
 import type { StudentProfile, AccessibilitySettings, AccessibilityPreset } from './student';
-import type { TestSessionRecord, TopicBreakdownItem, CognitionStatsRecord } from './history';
+import type { TestSessionRecord, TopicBreakdownItem, CognitionStatsRecord, AbTestComparisonMetrics, AbTestVariantStats } from './history';
 import type { AnswerRecord } from '../context/TestSessionContext';
 
 export {
@@ -9,6 +9,8 @@ export {
   TestSessionRecord,
   TopicBreakdownItem,
   CognitionStatsRecord,
+  AbTestComparisonMetrics,
+  AbTestVariantStats,
   AnswerRecord,
 };
 

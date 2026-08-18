@@ -21,6 +21,7 @@ import {
   Check,
   UserCheck,
   Sliders,
+  Zap,
 } from 'lucide-react';
 
 const Home: React.FC = () => {
@@ -146,6 +147,27 @@ const Home: React.FC = () => {
     navigate('/warmup');
   };
 
+  const handleStartAbTest = (student?: StudentProfile) => {
+    if (student) {
+      selectStudent(student);
+      startSession(student);
+    } else if (selectedStudentId) {
+      const target = roster.find((s) => s.id === selectedStudentId);
+      if (target) {
+        selectStudent(target);
+        startSession(target);
+      } else if (guestName.trim()) {
+        selectStudent(null);
+        startSession(guestName.trim());
+      }
+    } else if (guestName.trim()) {
+      selectStudent(null);
+      startSession(guestName.trim());
+    }
+
+    navigate('/ab-test');
+  };
+
   return (
     <div style={{ maxWidth: '900px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       {/* Header Banner */}
@@ -221,12 +243,29 @@ const Home: React.FC = () => {
           <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
             <AccessibilityModeSwitcher compact onSaveToProfile />
             <button
+              className="btn"
+              onClick={() => handleStartAbTest(currentStudent || undefined)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                backgroundColor: '#7C3AED',
+                color: '#FFFFFF',
+                fontWeight: 700,
+                border: 'none',
+              }}
+              title="5–10 Min Aufgaben-Check: Textaufgaben vs. Direkte Aufgaben"
+            >
+              <Zap size={18} />
+              ⚡ Aufgaben-Check (5–10 Min)
+            </button>
+            <button
               className="btn btn-primary"
               onClick={() => handleStartTest(currentStudent || undefined)}
               style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
             >
               <Play size={18} />
-              Diagnose-Test jetzt starten
+              Diagnose-Test starten
             </button>
             <button
               className="btn btn-secondary"
@@ -353,17 +392,40 @@ const Home: React.FC = () => {
                     </p>
                   )}
 
-                  <button
-                    className="btn btn-primary"
-                    style={{ width: '100%', padding: '0.5rem', fontSize: '0.9rem', justifyContent: 'center' }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleStartTest(student);
-                    }}
-                  >
-                    <Play size={16} />
-                    Test starten
-                  </button>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                    <button
+                      className="btn"
+                      style={{
+                        width: '100%',
+                        padding: '0.45rem',
+                        fontSize: '0.85rem',
+                        justifyContent: 'center',
+                        backgroundColor: '#7C3AED',
+                        color: '#FFFFFF',
+                        fontWeight: 700,
+                        border: 'none',
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleStartAbTest(student);
+                      }}
+                      title="5–10 Min Aufgaben-Check: Textaufgaben vs. Direkte Aufgaben"
+                    >
+                      <Zap size={15} />
+                      ⚡ Aufgaben-Check (5–10 Min)
+                    </button>
+                    <button
+                      className="btn btn-primary"
+                      style={{ width: '100%', padding: '0.45rem', fontSize: '0.85rem', justifyContent: 'center' }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleStartTest(student);
+                      }}
+                    >
+                      <Play size={15} />
+                      Volltest starten
+                    </button>
+                  </div>
                 </div>
               );
             })}
@@ -376,22 +438,39 @@ const Home: React.FC = () => {
         <h3 style={{ fontSize: '1rem', color: 'var(--text-color)', marginBottom: '0.75rem' }}>
           Oder Test ohne Roster-Profil starten (Gast)
         </h3>
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
           <input
             type="text"
             className="input"
             placeholder="Schüler-Name für diesen Test"
             value={guestName}
             onChange={(e) => setGuestName(e.target.value)}
-            style={{ maxWidth: '350px' }}
+            style={{ maxWidth: '300px' }}
           />
+          <button
+            className="btn"
+            disabled={!guestName.trim()}
+            onClick={() => handleStartAbTest()}
+            style={{
+              backgroundColor: guestName.trim() ? '#7C3AED' : '#CBD5E1',
+              color: '#FFFFFF',
+              fontWeight: 700,
+              border: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+            }}
+          >
+            <Zap size={16} />
+            ⚡ Aufgaben-Check (Gast)
+          </button>
           <button
             className="btn btn-secondary"
             disabled={!guestName.trim()}
             onClick={() => handleStartTest()}
           >
             <Play size={16} />
-            Als Gast starten
+            Volltest (Gast)
           </button>
         </div>
       </div>

@@ -12,9 +12,13 @@ import {
   CheckCircle2,
   AlertCircle,
   Bookmark,
+  Zap,
 } from 'lucide-react';
 import { AiPromptModal } from './AiPromptModal';
 import type { AiPromptContext, PromptMode } from '../utils/aiPromptGenerator';
+import { computeAbComparisonMetrics } from '../utils/evaluation';
+
+import { getStudentById } from '../utils/studentRoster';
 
 interface DiagnosticReportPrintProps {
   onClose?: () => void;
@@ -40,7 +44,14 @@ const DiagnosticReportPrint: React.FC<DiagnosticReportPrintProps> = ({ onClose, 
   const markedQuestionIds = sessionRecord
     ? sessionRecord.markedQuestionIds || []
     : state.markedQuestionIds || [];
-  const gradeLevel = state.currentStudent?.gradeLevel || (typeof mathLevel === 'number' ? Math.max(1, Math.min(13, mathLevel + 4)) : 5);
+
+  const studentProfileFromRoster = sessionRecord?.studentId
+    ? getStudentById(sessionRecord.studentId)
+    : state.currentStudent;
+  const gradeLevel =
+    studentProfileFromRoster?.gradeLevel ||
+    state.currentStudent?.gradeLevel ||
+    (typeof mathLevel === 'number' ? Math.max(1, Math.min(13, mathLevel + 4)) : 5);
   const accessibilitySettings = sessionRecord?.accessibilitySettings || state.accessibilitySettings;
   const isDirectAndReduced = Boolean(accessibilitySettings?.directQuestions || accessibilitySettings?.reducedSensory);
 
@@ -101,9 +112,13 @@ const DiagnosticReportPrint: React.FC<DiagnosticReportPrintProps> = ({ onClose, 
   const strengths = allTopics.filter((t) => t.accuracy >= 0.7);
   const weaknesses = allTopics.filter((t) => t.accuracy < 0.7);
 
+  const abMetrics = sessionRecord?.abComparisonMetrics || computeAbComparisonMetrics(answers);
+
   // Smart default recommendation notes
   let defaultRecommendation = '';
-  if (cogStats) {
+  if (abMetrics && abMetrics.recommendation === 'recommend_direct') {
+    defaultRecommendation = `A/B Diagnose: ${abMetrics.recommendationReason} Es wird empfohlen, den Direkt & Reizarm Modus dauerhaft für den Unterricht und Übungsphasen einzusetzen.`;
+  } else if (cogStats) {
     const avgReactionMs = cogStats.answers.reduce((acc, curr) => acc + (curr.reactionTime || 0), 0) / (cogStats.total || 1);
     const cogAcc = cogStats.correct / (cogStats.total || 1);
     if (cogAcc >= 0.8 && avgReactionMs < 1200) {
@@ -117,7 +132,9 @@ const DiagnosticReportPrint: React.FC<DiagnosticReportPrintProps> = ({ onClose, 
     defaultRecommendation = 'Gezielte Nachhilfe in den identifizierten Problemfeldern durchführen. Regelmäßige Lernzielkontrollen empfohlen.';
   }
 
-  const [tutorNotes, setTutorNotes] = useState<string>(defaultRecommendation);
+  const [tutorNotes, setTutorNotes] = useState<string>(
+    sessionRecord?.notes ? `${sessionRecord.notes}\n\n${defaultRecommendation}` : defaultRecommendation
+  );
 
   // AI Prompt Modal State
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
@@ -466,6 +483,94 @@ const DiagnosticReportPrint: React.FC<DiagnosticReportPrintProps> = ({ onClose, 
             )}
           </div>
         </div>
+
+        {/* A/B COMPARISON SECTION */}
+        {abMetrics && (
+          <div
+            style={{
+              border: '2px solid #7C3AED',
+              borderRadius: '8px',
+              padding: '0.75rem 1rem',
+              backgroundColor: '#F5F3FF',
+              marginBottom: '0.85rem',
+              pageBreakInside: 'avoid',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '0.5rem',
+                borderBottom: '1px solid #DDD6FE',
+                paddingBottom: '0.35rem',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#5B21B6', fontWeight: 800, fontSize: '0.9rem' }}>
+                <Zap size={16} color="#7C3AED" />
+                <span>Aufgabenstil-Vergleich: Textaufgaben vs. Direkte Aufgaben</span>
+              </div>
+              <span
+                style={{
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  color: abMetrics.recommendation === 'recommend_direct' ? '#065F46' : abMetrics.recommendation === 'recommend_standard' ? '#92400E' : '#1E40AF',
+                  backgroundColor: abMetrics.recommendation === 'recommend_direct' ? '#D1FAE5' : abMetrics.recommendation === 'recommend_standard' ? '#FEF3C7' : '#EFF6FF',
+                  padding: '0.15rem 0.5rem',
+                  borderRadius: '4px',
+                }}
+              >
+                {abMetrics.recommendation === 'recommend_direct'
+                  ? 'Empfehlung: Direkt & Reizarm'
+                  : abMetrics.recommendation === 'recommend_standard'
+                  ? 'Empfehlung: Standard'
+                  : 'Ergebnis: Ausgeglichen'}
+              </span>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.45rem' }}>
+              {/* Standard Box */}
+              <div style={{ backgroundColor: 'white', padding: '0.55rem 0.75rem', borderRadius: '6px', border: '1px solid #E2E8F0' }}>
+                <div style={{ fontWeight: 700, fontSize: '0.82rem', color: '#475569', marginBottom: '0.2rem' }}>
+                  Standard-Modus (Narrativ / Storys)
+                </div>
+                <div style={{ fontSize: '0.76rem', color: '#334155', display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Trefferquote:</span>
+                  <strong>{Math.round(abMetrics.standard.accuracy * 100)}% ({abMetrics.standard.correct}/{abMetrics.standard.total})</strong>
+                </div>
+                <div style={{ fontSize: '0.76rem', color: '#334155', display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Ø Antwortzeit:</span>
+                  <strong>{abMetrics.standard.avgTime.toFixed(1)}s</strong>
+                </div>
+              </div>
+
+              {/* Direct Box */}
+              <div style={{ backgroundColor: 'white', padding: '0.55rem 0.75rem', borderRadius: '6px', border: '1px solid #86EFAC' }}>
+                <div style={{ fontWeight: 800, fontSize: '0.82rem', color: '#166534', marginBottom: '0.2rem' }}>
+                  Direkt & Reizarm [D/R] (Formeln)
+                </div>
+                <div style={{ fontSize: '0.76rem', color: '#166534', display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Trefferquote:</span>
+                  <strong>{Math.round(abMetrics.direct.accuracy * 100)}% ({abMetrics.direct.correct}/{abMetrics.direct.total})</strong>
+                </div>
+                <div style={{ fontSize: '0.76rem', color: '#166534', display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Ø Antwortzeit:</span>
+                  <strong>{abMetrics.direct.avgTime.toFixed(1)}s</strong>
+                </div>
+              </div>
+            </div>
+
+            {/* Delta & Finding */}
+            <div style={{ fontSize: '0.76rem', color: '#1E293B', backgroundColor: 'white', padding: '0.4rem 0.65rem', borderRadius: '4px', border: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <span>
+                <strong>Differenz:</strong> Genauigkeit {abMetrics.accuracyGainPercent >= 0 ? `+${abMetrics.accuracyGainPercent}%` : `${abMetrics.accuracyGainPercent}%`} • Tempo {abMetrics.speedupPercent >= 0 ? `+${abMetrics.speedupPercent}% schneller` : `${Math.abs(abMetrics.speedupPercent)}% langsamer`}
+              </span>
+              <span style={{ fontSize: '0.74rem', color: '#4B5563', fontStyle: 'italic' }}>
+                {abMetrics.recommendationReason}
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Strengths & Weaknesses Detailed Breakdown (2 Columns) */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.85rem' }}>
